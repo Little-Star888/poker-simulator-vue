@@ -90,7 +90,7 @@ const dragSelection = (e: MouseEvent) => {
 }
 
 // 结束选择
-const endSelection = (e: MouseEvent) => {
+const endSelection = () => {
   if (!props.visible) return
 
   isSelecting.value = false

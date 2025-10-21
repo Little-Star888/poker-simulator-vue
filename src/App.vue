@@ -28,7 +28,8 @@
     <!-- Screenshot Selection Overlay -->
     <ScreenshotSelector
       v-if="showScreenshotSelector"
-      @capture="handleScreenshotCapture"
+      :visible="showScreenshotSelector"
+      @complete="handleScreenshotCapture"
       @cancel="handleScreenshotCancel"
     />
 
@@ -138,14 +139,6 @@ const handleScreenshotCapture = async (cropOptions: any) => {
     const gameState = gameStore.game?.getGameState()
 
     // 将当前建议缓存转换为数组格式
-    const allGtoSuggestions = Object.entries(gameStore.currentSuggestionsCache).map(([playerId, suggestion]) => {
-      return {
-        playerId,
-        suggestion,
-        notes: ''
-      }
-    })
-
     gameStore.log('✅ 所有当前GTO建议已整理。请在弹窗中确认保存。')
 
     // 设置快照数据
@@ -399,7 +392,7 @@ onMounted(() => {
 .main-content {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  flex: 1;
   height: 100%;
   transition: margin-left 0.3s ease-in-out;
 }
@@ -412,7 +405,7 @@ onMounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+  background: #e8f5e9;
 }
 
 /* --- Info Panel Area --- */
@@ -420,7 +413,7 @@ onMounted(() => {
   padding: 15px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
   flex-grow: 1;
   overflow-y: auto;
   background: var(--bg-light);
@@ -432,8 +425,7 @@ onMounted(() => {
     position: relative;
     transform: translateX(0);
     box-shadow: none;
-    min-width: var(--drawer-width);
-    max-width: var(--drawer-width);
+    width: 25%;
     flex-shrink: 0;
   }
 
@@ -448,17 +440,17 @@ onMounted(() => {
 
   .main-content {
     flex-direction: row;
-    flex: 1;
+    width: 75%;
   }
 
   .table-area {
-    width: 50%;
+    width: 66.67%; /* 50% of viewport = 50/75 = 66.67% of main-content */
     height: 100%;
     border-right: 1px solid var(--border-color);
   }
 
   .info-panel-area {
-    width: 50%;
+    width: 33.33%; /* 25% of viewport = 25/75 = 33.33% of main-content */
     height: 100%;
     overflow-y: auto;
     padding: 20px;
@@ -570,7 +562,6 @@ html, body {
   padding: 15px;
   border-radius: 8px;
   border: 1px solid var(--border-color, #ddd);
-  margin-bottom: 15px;
 }
 
 .section h3 {

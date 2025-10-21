@@ -1,28 +1,8 @@
 <template>
   <div class="info-panel">
-    <!-- GTO 建议显示区域 -->
-    <div class="section">
-      <h3>💡 GTO 建议</h3>
-      <div id="suggestion-display" ref="suggestionDisplay">
-        <div v-if="currentSuggestions.length > 0">
-          <div
-            v-for="(suggestion, index) in currentSuggestions"
-            :key="index"
-            class="suggestion-item"
-          >
-            <strong>{{ suggestion.playerId }}:</strong>
-            <pre>{{ formatSuggestion(suggestion.data) }}</pre>
-          </div>
-        </div>
-        <div v-else class="empty-state">
-          暂无 GTO 建议
-        </div>
-      </div>
-    </div>
-
     <!-- 行动历史表 -->
     <div class="section">
-      <h3>📊 行动历史</h3>
+      <h3>📊 玩家行动 (ActionSheet)</h3>
       <div id="action-sheet-container">
         <table id="action-sheet">
           <thead>
@@ -47,9 +27,29 @@
       </div>
     </div>
 
+    <!-- GTO 建议显示区域 -->
+    <div class="section">
+      <h3>💡 GTO 建议</h3>
+      <div id="suggestion-display" ref="suggestionDisplay">
+        <div v-if="currentSuggestions.length > 0">
+          <div
+            v-for="(suggestion, index) in currentSuggestions"
+            :key="index"
+            class="suggestion-item"
+          >
+            <strong>{{ suggestion.playerId }}:</strong>
+            <pre>{{ formatSuggestion(suggestion.data) }}</pre>
+          </div>
+        </div>
+        <div v-else class="empty-state">
+          等待玩家行动...
+        </div>
+      </div>
+    </div>
+
     <!-- 控制台日志 -->
     <div class="section">
-      <h3>📝 控制台日志</h3>
+      <h3>📜 Console 日志</h3>
       <textarea
         id="console-log"
         ref="consoleLog"
@@ -140,7 +140,6 @@ watch(consoleText, async () => {
 .info-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
   height: 100%;
 }
 
@@ -152,11 +151,13 @@ watch(consoleText, async () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin-bottom: 20px;
 }
 
 .section:last-child {
   flex: 1;
   min-height: 200px;
+  margin-bottom: 0;
 }
 
 #suggestion-display {

@@ -20,19 +20,15 @@
           {{ getLastAction(i) }}
         </div>
         <div class="hole-cards">
-          <div
-            v-for="(card, index) in getPlayerCards(i)"
-            :key="index"
-            class="hole-card"
-            :style="{ backgroundImage: `url(${getCardImage(card)})` }"
-          ></div>
+          <div class="hole-card" :style="getHoleCardStyle(i, 0)"></div>
+          <div class="hole-card" :style="getHoleCardStyle(i, 1)"></div>
         </div>
 
-        <!-- Player Action Popup (for manual mode P1) -->
+        <!-- Player Action Popup (for manual mode) -->
         <PlayerActionPopup
-          v-if="i === 1 && gameStore.isWaitingForManualInput"
+          v-if="gameStore.isWaitingForManualInput && gameStore.currentPlayerId === `P${i}`"
           :player-id="`P${i}`"
-          :visible="gameStore.currentPlayerId === `P${i}`"
+          :visible="true"
         />
       </div>
 
@@ -74,8 +70,9 @@ const pot = computed(() => gameState.value?.pot || 0)
 
 // 获取玩家位置（圆形布局）
 const getPlayerPosition = (index: number) => {
-  const count = playerCount.value
-  const angle = (360 / count) * (index - 1) - 90 // -90 to start from top
+  // 使用原版固定角度：P1=90°(下), P2=135°, P3=180°(左), P4=225°, P5=270°(上), P6=315°, P7=0°(右), P8=45°
+  const seatAngles = [90, 135, 180, 225, 270, 315, 0, 45]
+  const angle = seatAngles[index - 1]
   const radius = 42 // percentage
 
   const x = 50 + radius * Math.cos((angle * Math.PI) / 180)
@@ -121,17 +118,21 @@ const getPlayerBet = (index: number) => {
   return player?.bet || 0
 }
 
-// 获取玩家手牌
-const getPlayerCards = (index: number) => {
-  const playerId = `P${index}`
+// 获取手牌样式（用于飞牌动画目标）
+const getHoleCardStyle = (playerIndex: number, cardIndex: number) => {
+  const playerId = `P${playerIndex}`
   const player = gameState.value?.players.find(p => p.id === playerId)
 
   // 只显示 P1 的手牌，或者在摊牌时显示所有牌
-  if (index === 1 || !gameStore.isGameRunning) {
-    return player?.holeCards || []
+  if (playerIndex === 1 || !gameStore.isGameRunning) {
+    const cards = player?.holeCards || []
+    if (cards[cardIndex]) {
+      return { backgroundImage: `url(${getCardImage(cards[cardIndex])})` }
+    }
   }
 
-  return []
+  // 返回空样式，但元素仍然存在（用于飞牌动画）
+  return {}
 }
 
 // 获取卡牌图片

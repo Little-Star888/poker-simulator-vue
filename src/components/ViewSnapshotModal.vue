@@ -18,7 +18,12 @@
             alt="牌局快照"
             class="snapshot-image"
             @click="openLightbox"
+            @error="(e) => console.error('图片加载失败:', e)"
           />
+          <div v-else class="image-placeholder">
+            <span>📷</span>
+            <p>暂无图片</p>
+          </div>
           <div class="image-hover-overlay">
             <span class="zoom-hint">
               <i class="material-icons">zoom_in</i> 查看大图
@@ -111,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { getSnapshotById, updateSnapshot } from '@/api/snapshotService'
 import { useGameStore } from '@/stores/gameStore'
 
@@ -146,19 +151,45 @@ const loadSnapshot = async (id: number) => {
     gameStore.log(`正在从数据库加载快照 (ID: ${id})...`)
 
     const data = await getSnapshotById(id)
+    console.log('📦 快照原始数据:', data)
+    console.log('  - imageData 类型:', typeof data.imageData, '长度:', data.imageData?.length)
+    console.log('  - gtoSuggestions 类型:', typeof data.gtoSuggestions)
+    console.log('  - createdAt:', data.createdAt)
+
     snapshot.value = data
 
     // 解析 GTO 建议
-    const allGtoSuggestions = JSON.parse(data.gtoSuggestions || '[]')
+    let allGtoSuggestions = []
+    if (data.gtoSuggestions) {
+      if (typeof data.gtoSuggestions === 'string') {
+        try {
+          allGtoSuggestions = JSON.parse(data.gtoSuggestions)
+        } catch (e) {
+          console.error('解析 gtoSuggestions 失败:', e)
+          allGtoSuggestions = []
+        }
+      } else if (Array.isArray(data.gtoSuggestions)) {
+        allGtoSuggestions = data.gtoSuggestions
+      } else if (typeof data.gtoSuggestions === 'object') {
+        // 如果是对象，转换为数组
+        allGtoSuggestions = Object.entries(data.gtoSuggestions).map(([playerId, suggestion]) => ({
+          playerId,
+          suggestion,
+          notes: ''
+        }))
+      }
+    }
+
+    console.log('📋 解析后的建议数量:', allGtoSuggestions.length)
     suggestions.value = allGtoSuggestions
     originalSuggestions.value = JSON.stringify(allGtoSuggestions)
 
     // 提取玩家 ID 列表
-    const ids = [...new Set(allGtoSuggestions.map((s: any) => s.playerId))].sort()
+    const ids = [...new Set(allGtoSuggestions.map((s: any) => s.playerId))].sort() as string[]
     playerIds.value = ids
     filterState.value = new Set(ids)
 
-    gameStore.log(`✅ 快照加载成功`)
+    gameStore.log(`✅ 快照加载成功 (${allGtoSuggestions.length} 条建议)`)
   } catch (error: any) {
     gameStore.log(`❌ 加载快照详情失败: ${error.message}`)
     console.error('加载快照失败:', error)
@@ -293,7 +324,7 @@ const handleSaveRemarks = async () => {
   try {
     gameStore.log(`💾 正在更新批注 (ID: ${props.snapshotId})...`)
 
-    const updateData = {
+    const updateData: any = {
       gtoSuggestions: JSON.stringify(suggestions.value)
     }
 
@@ -393,6 +424,10 @@ watch(
   border-bottom: 1px solid #ccc;
   padding-bottom: 10px;
   background: #f8f9fa;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .snapshot-image {
@@ -402,6 +437,25 @@ watch(
   cursor: pointer;
   display: block;
   margin: 0 auto;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #999;
+}
+
+.image-placeholder span {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.image-placeholder p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .image-hover-overlay {

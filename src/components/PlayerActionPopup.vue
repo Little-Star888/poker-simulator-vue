@@ -7,7 +7,7 @@
   >
     <!-- 主操作面板 -->
     <div v-show="!showSlider" class="action-panel">
-      <!-- 快速下注按钮 -->
+      <!-- 快速下注按钮（弧形排列）-->
       <div class="quick-bet-sizes">
         <button
           v-for="(multiplier, index) in betSizeMultipliers"
@@ -42,7 +42,7 @@
         <button
           class="main-action-btn check-call"
           :data-action="checkCallAction"
-          @click="executeAction(checkCallAction)"
+          @click="executeAction(checkCallAction, checkCallAmount)"
         >
           {{ checkCallLabel }}
           <span v-if="toCall > 0" class="amount">{{ toCall }}</span>
@@ -50,7 +50,7 @@
       </div>
     </div>
 
-    <!-- 滑块面板 -->
+    <!-- 滑块面板（垂直）-->
     <div v-show="showSlider" class="amount-slider-overlay">
       <div class="slider-container">
         <div class="slider-value-display">{{ sliderValue }}</div>
@@ -66,16 +66,10 @@
         </div>
         <button
           class="main-action-btn confirm-bet"
+          data-action="CONFIRM"
           @click="confirmBet"
         >
           确定
-        </button>
-        <button
-          class="game-control-btn secondary-btn"
-          @click="cancelSlider"
-          style="margin-top: 10px;"
-        >
-          取消
         </button>
       </div>
     </div>
@@ -83,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
 import { useSettingStore } from '@/stores/settingStore'
 
@@ -176,6 +170,17 @@ const checkCallLabel = computed(() => {
   return '让牌'
 })
 
+const checkCallAmount = computed(() => {
+  const action = checkCallAction.value
+  if (action === 'ALLIN' && player.value) {
+    return player.value.stack + player.value.bet
+  }
+  if (action === 'CALL') {
+    return highestBet.value
+  }
+  return undefined
+})
+
 // 滑块范围
 const sliderMin = computed(() => {
   if (!player.value) return 0
@@ -196,15 +201,9 @@ const sliderStep = computed(() => {
   return settingStore.bb
 })
 
-// 弹窗位置（简化版，实际应该根据玩家位置动态计算）
+// 弹窗位置（可以扩展为动态定位）
 const popupStyle = computed(() => {
-  return {
-    position: 'fixed' as const,
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    zIndex: 1000
-  }
+  return {}
 })
 
 // 方法
@@ -263,10 +262,6 @@ const confirmBet = () => {
   showSlider.value = false
 }
 
-const cancelSlider = () => {
-  showSlider.value = false
-}
-
 const executeAction = async (action: string, amount?: number) => {
   if (!props.playerId) return
 
@@ -278,234 +273,300 @@ const executeAction = async (action: string, amount?: number) => {
 
 // 监听可见性变化，重置滑块
 watch(() => props.visible, (newVal) => {
+  console.log('👁️ PlayerActionPopup visible changed:', newVal, 'playerId:', props.playerId)
   if (!newVal) {
     showSlider.value = false
   }
 })
+
+// 组件挂载时输出调试信息
+onMounted(() => {
+  console.log('🎮 PlayerActionPopup mounted:', props.playerId, 'visible:', props.visible)
+  console.log('  - isWaitingForManualInput:', gameStore.isWaitingForManualInput)
+  console.log('  - currentPlayerId:', gameStore.currentPlayerId)
+  console.log('  - player:', player.value)
+})
 </script>
 
 <style scoped>
+/* 主容器 - 透明背景 */
 .player-action-popup {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  padding: 20px;
-  min-width: 320px;
-  max-width: 400px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  z-index: 200;
+  background: transparent;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
+/* 操作面板 */
 .action-panel {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  padding: 15px;
+  border-radius: 0;
+  box-shadow: none;
 }
 
+/* 快速下注按钮容器（弧形布局）*/
 .quick-bet-sizes {
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
+  position: relative;
+  width: 180px;
+  height: 100px;
+  margin: 0 auto 15px auto;
 }
 
 .quick-bet-sizes button {
-  flex: 1;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
-  padding: 8px 4px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: #f8f9fa;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 0;
+  font-size: 10px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  position: absolute;
+  transform: translate(-50%, -50%);
 }
 
-.quick-bet-sizes button:hover:not(:disabled) {
-  background: #e9ecef;
-  border-color: #007bff;
-  transform: translateY(-2px);
+/* 弧形定位（5个按钮）*/
+.quick-bet-sizes button:nth-child(1) {
+  left: 1%;
+  top: 84%;
 }
 
-.quick-bet-sizes button:disabled {
-  opacity: 0.5;
+.quick-bet-sizes button:nth-child(2) {
+  left: 18%;
+  top: 31%;
+}
+
+.quick-bet-sizes button:nth-child(3) {
+  left: 50%;
+  top: 10%;
+}
+
+.quick-bet-sizes button:nth-child(4) {
+  left: 82%;
+  top: 31%;
+}
+
+.quick-bet-sizes button:nth-child(5) {
+  left: 99%;
+  top: 84%;
+}
+
+.quick-bet-sizes button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.quick-bet-sizes button:disabled,
+.quick-bet-sizes button:disabled:hover {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.4);
   cursor: not-allowed;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .quick-bet-sizes button span {
-  font-weight: bold;
-  font-size: 14px;
-  color: #333;
+  font-size: 1em;
 }
 
 .quick-bet-sizes button small {
-  font-size: 11px;
-  color: #666;
+  font-size: 0.7em;
+  font-weight: normal;
   margin-top: 2px;
+  color: #eee;
 }
 
+/* 主要动作按钮 */
 .main-action-buttons {
   display: flex;
-  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
 }
 
 .main-action-btn {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
-  color: white;
-  position: relative;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
 }
 
-.main-action-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+.main-action-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
 }
 
 .main-action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: scale(1);
 }
 
 .main-action-btn.fold {
-  background: #dc3545;
-}
-
-.main-action-btn.fold:hover:not(:disabled) {
-  background: #c82333;
+  background: linear-gradient(145deg, #d63031, #b71540);
+  width: 55px;
+  height: 55px;
 }
 
 .main-action-btn.bet-raise {
-  background: #ffc107;
-  color: #333;
-}
-
-.main-action-btn.bet-raise:hover:not(:disabled) {
-  background: #e0a800;
+  background: linear-gradient(145deg, #0984e3, #005cb2);
+  width: 70px;
+  height: 70px;
+  font-size: 18px;
+  flex: 0 0 70px;
 }
 
 .main-action-btn.check-call {
-  background: #28a745;
+  background: linear-gradient(145deg, #27ae60, #1e8449);
+  width: 55px;
+  height: 55px;
+  flex: 0 0 55px;
 }
 
-.main-action-btn.check-call:hover:not(:disabled) {
-  background: #218838;
-}
-
-.main-action-btn .amount {
+.main-action-btn.check-call .amount {
   display: block;
-  font-size: 12px;
+  font-size: 10px;
   margin-top: 2px;
-  opacity: 0.9;
+  font-weight: normal;
 }
 
+/* 确保 All-in 按钮保持圆形 */
+.main-action-btn[data-action="ALLIN"] {
+  max-width: 55px !important;
+}
+
+.main-action-btn.bet-raise[data-action="ALLIN"] {
+  flex: 0 0 70px;
+}
+
+/* 滑块面板（垂直）*/
 .amount-slider-overlay {
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  border-radius: 0;
 }
 
 .slider-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  align-items: center;
+  gap: 20px;
+  position: relative;
 }
 
 .slider-value-display {
-  text-align: center;
-  font-size: 24px;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 4px 15px;
+  border-radius: 15px;
+  font-size: 18px;
   font-weight: bold;
-  color: #007bff;
-  padding: 10px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.5);
 }
 
 .slider-track-container {
-  padding: 10px 0;
+  position: relative;
+  height: 200px;
+  width: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: none;
+  border-radius: 25px;
+  padding: 15px 0;
 }
 
 .bet-slider-input {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: #ddd;
-  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 170px;
+  height: 10px;
+  background: transparent;
+  transform: rotate(-90deg);
   cursor: pointer;
+  position: absolute;
+}
+
+.bet-slider-input::-webkit-slider-runnable-track {
+  background: #555;
+  height: 2px;
+  border-radius: 1px;
 }
 
 .bet-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 40px;
+  height: 40px;
+  background: #f39c12;
   border-radius: 50%;
-  background: #007bff;
+  border: 4px solid white;
+  margin-top: -19px;
+  box-shadow: 0 0 10px rgba(243, 156, 18, 0.7);
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.bet-slider-input::-webkit-slider-thumb:hover {
-  background: #0056b3;
-  transform: scale(1.2);
+.bet-slider-input::-moz-range-track {
+  background: #555;
+  height: 2px;
+  border-radius: 1px;
 }
 
 .bet-slider-input::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 40px;
+  height: 40px;
+  background: #f39c12;
   border-radius: 50%;
-  background: #007bff;
+  border: 4px solid white;
+  box-shadow: 0 0 10px rgba(243, 156, 18, 0.7);
   cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-}
-
-.bet-slider-input::-moz-range-thumb:hover {
-  background: #0056b3;
-  transform: scale(1.2);
 }
 
 .confirm-bet {
-  background: #28a745;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.confirm-bet:hover {
-  background: #218838;
-  transform: translateY(-2px);
-}
-
-/* 响应式调整 */
-@media (max-width: 480px) {
-  .player-action-popup {
-    min-width: 280px;
-    padding: 15px;
-  }
-
-  .quick-bet-sizes button {
-    padding: 6px 2px;
-  }
-
-  .quick-bet-sizes button span {
-    font-size: 12px;
-  }
-
-  .quick-bet-sizes button small {
-    font-size: 10px;
-  }
-
-  .main-action-btn {
-    padding: 10px;
-    font-size: 14px;
-  }
+  background: linear-gradient(145deg, #0984e3, #005cb2);
+  width: 70px;
+  height: 70px;
+  font-size: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
 }
 </style>

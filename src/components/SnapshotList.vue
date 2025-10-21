@@ -56,7 +56,7 @@
               @keydown.esc="handleNameCancel"
             />
             <br>
-            <small>{{ formatTimestamp(snapshot.timestamp) }}</small>
+            <small>{{ formatTimestamp(snapshot.createdAt) }}</small>
           </div>
 
           <div class="snapshot-actions">
@@ -134,15 +134,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { getSnapshots, deleteSnapshotById, updateSnapshot } from '@/api/snapshotService'
 import { useGameStore } from '@/stores/gameStore'
-
-interface Snapshot {
-  id: number
-  name: string
-  timestamp: string
-}
+import type { SnapshotSummary } from '@/types'
 
 interface Emits {
   (e: 'view-snapshot', id: number): void
@@ -153,7 +148,7 @@ const emit = defineEmits<Emits>()
 const gameStore = useGameStore()
 
 // 状态
-const snapshots = ref<Snapshot[]>([])
+const snapshots = ref<SnapshotSummary[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const currentPage = ref(0)
@@ -178,6 +173,12 @@ const loadSnapshots = async (page: number = 0) => {
   try {
     const pageData = await getSnapshots(page, 5)
 
+    console.log('📦 快照列表数据:', pageData.content)
+    if (pageData.content.length > 0) {
+      console.log('  - 第一个快照:', pageData.content[0])
+      console.log('  - createdAt 字段:', pageData.content[0].createdAt)
+    }
+
     snapshots.value = pageData.content
     currentPage.value = pageData.number
     totalPages.value = pageData.totalPages
@@ -194,9 +195,21 @@ const loadSnapshots = async (page: number = 0) => {
   }
 }
 
-const formatTimestamp = (timestamp: string): string => {
+const formatTimestamp = (createdAt: string): string => {
+  if (!createdAt) {
+    console.warn('createdAt is empty')
+    return '未知时间'
+  }
+
   try {
-    const date = new Date(timestamp)
+    const date = new Date(createdAt)
+
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date:', createdAt)
+      return createdAt
+    }
+
     return date.toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -205,8 +218,9 @@ const formatTimestamp = (timestamp: string): string => {
       minute: '2-digit',
       second: '2-digit'
     })
-  } catch {
-    return timestamp
+  } catch (error) {
+    console.error('Date formatting error:', error, createdAt)
+    return createdAt || '未知时间'
   }
 }
 

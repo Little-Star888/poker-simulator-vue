@@ -44,7 +44,7 @@ export async function getSnapshotById(id: number): Promise<SnapshotDetail> {
  * @returns 后端返回的已保存的快照对象
  */
 export async function createSnapshot(
-  snapshotData: Partial<SnapshotDetail>,
+  snapshotData: any,
 ): Promise<SnapshotDetail> {
   const response = await fetch(API_BASE_URL, {
     method: "POST",
@@ -67,7 +67,7 @@ export async function createSnapshot(
  */
 export async function updateSnapshot(
   id: number,
-  updateData: Partial<SnapshotDetail>,
+  updateData: any,
 ): Promise<SnapshotDetail> {
   const response = await fetch(`${API_BASE_URL}/${id}`, {
     method: "PUT",

@@ -78,14 +78,33 @@ const handleCardClick = (cardText: string, event: MouseEvent) => {
   const playerId = currentSlot.dataset.playerId
   const cardIndex = currentSlot.dataset.cardIndex
 
+  console.log('🎯 卡牌分配调试:', {
+    slotType,
+    playerId,
+    cardIndex,
+    usePresetHands: settingStore.usePresetHands
+  })
+
   if (slotType === 'player' && settingStore.usePresetHands && playerId && cardIndex) {
     const playerOnTable = document.querySelector(`.player[data-player="${playerId}"]`)
+    console.log('🎲 查找牌桌玩家:', playerId, '结果:', playerOnTable)
+
     if (playerOnTable) {
-      const cardOnTable = playerOnTable.querySelectorAll('.hole-card')[parseInt(cardIndex)]
+      const holeCards = playerOnTable.querySelectorAll('.hole-card')
+      console.log('🃏 找到手牌元素数量:', holeCards.length)
+
+      const cardOnTable = holeCards[parseInt(cardIndex)]
+      console.log('🎯 目标手牌元素:', cardOnTable, '索引:', cardIndex)
+
       if (cardOnTable) {
+        console.log('✈️ 开始飞牌动画到牌桌')
         animateCardToSlot(pickerCard, cardOnTable as HTMLElement, cardText)
         animationsInitiated++
+      } else {
+        console.warn('⚠️ 未找到目标手牌元素')
       }
+    } else {
+      console.warn('⚠️ 未找到牌桌玩家元素:', playerId)
     }
   }
 
@@ -110,8 +129,14 @@ const animateCardToSlot = (
   const startRect = pickerCard.getBoundingClientRect()
   const endRect = destinationElement.getBoundingClientRect()
 
+  console.log('🎬 动画参数:', {
+    card: cardText,
+    start: { x: startRect.left, y: startRect.top, w: startRect.width, h: startRect.height },
+    end: { x: endRect.left, y: endRect.top, w: endRect.width, h: endRect.height }
+  })
+
   if (endRect.width === 0 || endRect.height === 0) {
-    console.warn('目标元素不可见或尺寸为零，跳过动画')
+    console.warn('⚠️ 目标元素不可见或尺寸为零，跳过动画', endRect)
     return
   }
 

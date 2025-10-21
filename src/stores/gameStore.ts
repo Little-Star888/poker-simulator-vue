@@ -258,8 +258,33 @@ export const useGameStore = defineStore("game", {
         // 开始翻前轮
         this.game!.startNewRound("preflop");
 
+        // 记录盲注动作到 ActionSheet
+        const gameState = this.game!.getGameState();
+        const sbPlayer = gameState.players[this.game!.sbIndex!];
+        const bbPlayer = gameState.players[this.game!.bbIndex!];
+
+        if (sbPlayer && this.actionRecords[sbPlayer.id]) {
+          this.actionRecords[sbPlayer.id].preflop.push(
+            `BET ${settingStore.sb}`,
+          );
+          this.log(
+            `[SYSTEM] ${sbPlayer.id} posts Small Blind ${settingStore.sb}`,
+          );
+        }
+
+        if (bbPlayer && this.actionRecords[bbPlayer.id]) {
+          this.actionRecords[bbPlayer.id].preflop.push(
+            `BET ${settingStore.bb}`,
+          );
+          this.log(
+            `[SYSTEM] ${bbPlayer.id} posts Big Blind ${settingStore.bb}`,
+          );
+        }
+
         this.isGameRunning = true;
-        this.log("✅ 游戏已开始");
+        this.log(
+          `✅ 新牌局开始！盲注: SB=${settingStore.sb}, BB=${settingStore.bb}`,
+        );
 
         // 开始处理第一个动作
         await this.processNextAction();
