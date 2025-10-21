@@ -82,6 +82,7 @@
         <input
           type="number"
           v-model.number="settingStore.playerCount"
+          @change="onPlayerCountChange"
           min="2"
           max="8"
           style="width: 50px;"
@@ -132,21 +133,88 @@
       <div class="form-row">
         <label>预设选项:</label>
         <label style="width: auto; margin-left: 20px;">
-          <input type="checkbox" v-model="settingStore.usePresetCommunity" />
+          <input
+            type="checkbox"
+            v-model="settingStore.usePresetCommunity"
+            @change="onPresetChange"
+          />
           预设公共牌
         </label>
         <label style="width: auto; margin-left: 10px;">
-          <input type="checkbox" v-model="settingStore.usePresetHands" />
+          <input
+            type="checkbox"
+            v-model="settingStore.usePresetHands"
+            @change="onPresetChange"
+          />
           预设手牌
         </label>
       </div>
+
       <div
-        v-show="settingStore.usePresetCommunity || settingStore.usePresetHands"
+        v-show="anyPresetEnabled"
         id="preset-controls"
+        style="margin-top: 15px;"
       >
-        <p style="color: #666; font-size: 12px; margin-top: 10px;">
-          预设功能已启用（详细配置将在后续实现）
-        </p>
+        <!-- 公共牌预设 -->
+        <div
+          v-show="settingStore.usePresetCommunity"
+          id="preset-community-cards-container"
+          style="margin-top: 15px;"
+        >
+          <h4>公共牌:</h4>
+          <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+            <strong>Flop:</strong>
+            <PresetSlot
+              v-for="i in 3"
+              :key="`flop-${i}`"
+              type="community"
+              stage="flop"
+              :card-index="i - 1"
+              :card="settingStore.presetCards.flop[i - 1]"
+            />
+            <strong style="margin-left: 5px;">Turn:</strong>
+            <PresetSlot
+              type="community"
+              stage="turn"
+              :card-index="0"
+              :card="settingStore.presetCards.turn[0]"
+            />
+            <strong style="margin-left: 5px;">River:</strong>
+            <PresetSlot
+              type="community"
+              stage="river"
+              :card-index="0"
+              :card="settingStore.presetCards.river[0]"
+            />
+          </div>
+        </div>
+
+        <!-- 玩家手牌预设 -->
+        <div
+          v-show="settingStore.usePresetHands"
+          id="preset-player-hands-container"
+          style="margin-top: 15px; margin-bottom: 15px;"
+        >
+          <h4>玩家手牌:</h4>
+          <div
+            v-for="i in settingStore.playerCount"
+            :key="`player-${i}`"
+            class="player-hand-preset"
+          >
+            <strong>P{{ i }}:</strong>
+            <PresetSlot
+              v-for="j in 2"
+              :key="`player-${i}-card-${j}`"
+              type="player"
+              :player-id="`P${i}`"
+              :card-index="j - 1"
+              :card="getPlayerCard(i, j - 1)"
+            />
+          </div>
+        </div>
+
+        <!-- 卡牌选择器 -->
+        <CardPicker v-if="anyPresetEnabled" />
       </div>
     </div>
 
@@ -163,9 +231,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, onMounted } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
 import { useSettingStore } from '@/stores/settingStore'
+import PresetSlot from './PresetSlot.vue'
+import CardPicker from './CardPicker.vue'
 import type { PlayerRole } from '@/types'
 
 const gameStore = useGameStore()
@@ -186,6 +256,11 @@ const availableRoles = computed<PlayerRole[]>(() => {
   return roles[count] || []
 })
 
+// 是否有任何预设启用
+const anyPresetEnabled = computed(() => {
+  return settingStore.usePresetCommunity || settingStore.usePresetHands
+})
+
 // 当 SB 改变时，自动更新 BB
 const onSBChange = () => {
   settingStore.bb = settingStore.sb * 2
@@ -196,6 +271,144 @@ const toggleGTOFilter = (playerId: string, event: Event) => {
   const target = event.target as HTMLInputElement
   gameStore.updateGTOFilter(playerId, target.checked)
 }
+
+// 玩家数量改变
+const onPlayerCountChange = () => {
+  // 重新初始化玩家手牌预设
+  if (settingStore.usePresetHands) {
+    initPlayerPresetCards()
+  }
+}
+
+// 预设选项改变
+const onPresetChange = () => {
+  if (gameStore.isInReplayMode) return
+
+  if (anyPresetEnabled.value && !gameStore.isPresetUIInitialized) {
+    initPresetUI()
+  }
+
+  if (!anyPresetEnabled.value && gameStore.isPresetUIInitialized) {
+    resetPresetData()
+  }
+
+  if (settingStore.usePresetHands) {
+    initPlayerPresetCards()
+  }
+
+  // 激活第一个空槽位
+  setTimeout(() => {
+    activateNextEmptySlot()
+  }, 100)
+}
+
+// 初始化预设 UI
+const initPresetUI = () => {
+  if (gameStore.isPresetUIInitialized) return
+
+  gameStore.isPresetUIInitialized = true
+  gameStore.log('✅ 预设功能已启用')
+
+  // 初始化玩家手牌数据结构
+  if (settingStore.usePresetHands) {
+    initPlayerPresetCards()
+  }
+}
+
+// 初始化玩家预设手牌数据
+const initPlayerPresetCards = () => {
+  const players: Record<string, (string | null)[]> = {}
+  for (let i = 1; i <= settingStore.playerCount; i++) {
+    const playerId = `P${i}`
+    players[playerId] = [null, null]
+  }
+  settingStore.presetCards.players = players
+}
+
+// 重置预设数据
+const resetPresetData = () => {
+  gameStore.usedCards.clear()
+  settingStore.resetPresetCards()
+
+  // 清除所有槽位显示
+  setTimeout(() => {
+    document.querySelectorAll('.preset-card-slot').forEach(slot => {
+      const el = slot as HTMLElement
+      el.style.backgroundImage = ''
+      delete el.dataset.card
+    })
+  }, 0)
+
+  if (gameStore.activeSelectionSlot) {
+    gameStore.activeSelectionSlot.classList.remove('active-selection')
+    gameStore.activeSelectionSlot = null
+  }
+
+  gameStore.isProcessingCardSelection = false
+  gameStore.isPresetUIInitialized = false
+
+  gameStore.log('🔄 预设数据已重置')
+}
+
+// 激活下一个空槽位
+const activateNextEmptySlot = () => {
+  if (gameStore.activeSelectionSlot) {
+    gameStore.activeSelectionSlot.classList.remove('active-selection')
+    gameStore.activeSelectionSlot = null
+  }
+
+  const sequence = getSlotSequence()
+  for (const slot of sequence) {
+    if (!slot.dataset.card) {
+      gameStore.activeSelectionSlot = slot
+      gameStore.activeSelectionSlot.classList.add('active-selection')
+      return
+    }
+  }
+
+  // 所有槽位都满了
+  gameStore.isProcessingCardSelection = false
+}
+
+// 获取槽位序列
+const getSlotSequence = (): HTMLElement[] => {
+  const sequence: HTMLElement[] = []
+
+  if (settingStore.usePresetCommunity) {
+    document.querySelectorAll('#preset-community-cards-container .preset-card-slot').forEach(slot => {
+      sequence.push(slot as HTMLElement)
+    })
+  }
+
+  if (settingStore.usePresetHands) {
+    document.querySelectorAll('#preset-player-hands-container .preset-card-slot').forEach(slot => {
+      sequence.push(slot as HTMLElement)
+    })
+  }
+
+  return sequence
+}
+
+// 获取玩家卡牌
+const getPlayerCard = (playerIndex: number, cardIndex: number): string | null => {
+  const playerId = `P${playerIndex}`
+  const cards = settingStore.presetCards.players[playerId]
+  return cards ? cards[cardIndex] : null
+}
+
+// 监听预设启用状态变化
+watch(anyPresetEnabled, (enabled) => {
+  if (!enabled) {
+    resetPresetData()
+  }
+})
+
+// 组件挂载时检查预设状态
+onMounted(() => {
+  if (anyPresetEnabled.value) {
+    initPresetUI()
+  }
+})
 </script>
 
 <style scoped>
@@ -220,5 +433,51 @@ const toggleGTOFilter = (playerId: string, event: Event) => {
 select:disabled {
   background-color: #eee;
   cursor: not-allowed;
+}
+
+/* 预设相关样式 */
+#preset-controls h4 {
+  margin: 10px 0 8px 0;
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+}
+
+.player-hand-preset {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.player-hand-preset strong {
+  min-width: 30px;
+  font-size: 12px;
+  color: #333;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .config-panel {
+    gap: 15px;
+  }
+
+  .section {
+    padding: 12px;
+  }
+
+  .form-row {
+    font-size: 13px;
+  }
+
+  .form-row input,
+  .form-row select {
+    font-size: 13px;
+  }
+
+  .player-hand-preset strong {
+    min-width: 25px;
+    font-size: 11px;
+  }
 }
 </style>
