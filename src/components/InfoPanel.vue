@@ -8,19 +8,19 @@
           <thead>
             <tr>
               <th>玩家</th>
-              <th>Preflop</th>
-              <th>Flop</th>
-              <th>Turn</th>
-              <th>River</th>
+              <th colspan="4">Preflop</th>
+              <th colspan="4">Flop</th>
+              <th colspan="4">Turn</th>
+              <th colspan="4">River</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="playerId in sortedPlayerIds" :key="playerId">
               <td><strong>{{ playerId }}</strong></td>
-              <td>{{ getActionsByPlayerId(playerId, 'preflop') }}</td>
-              <td>{{ getActionsByPlayerId(playerId, 'flop') }}</td>
-              <td>{{ getActionsByPlayerId(playerId, 'turn') }}</td>
-              <td>{{ getActionsByPlayerId(playerId, 'river') }}</td>
+              <td v-for="i in 4" :key="`${playerId}-preflop-${i}`">{{ getAction(playerId, 'preflop', i - 1) }}</td>
+              <td v-for="i in 4" :key="`${playerId}-flop-${i}`">{{ getAction(playerId, 'flop', i - 1) }}</td>
+              <td v-for="i in 4" :key="`${playerId}-turn-${i}`">{{ getAction(playerId, 'turn', i - 1) }}</td>
+              <td v-for="i in 4" :key="`${playerId}-river-${i}`">{{ getAction(playerId, 'river', i - 1) }}</td>
             </tr>
           </tbody>
         </table>
@@ -116,13 +116,21 @@ const sortedPlayerIds = computed(() => {
 })
 
 const currentSuggestions = computed(() => {
+  console.log('[InfoPanel] currentSuggestionsCache:', gameStore.currentSuggestionsCache)
+  console.log('[InfoPanel] gtoSuggestionFilter:', Array.from(gameStore.gtoSuggestionFilter))
+
   const suggestions = []
   for (const playerId in gameStore.currentSuggestionsCache) {
+    console.log(`[InfoPanel] 处理玩家 ${playerId} 的建议`)
     suggestions.push({
       playerId,
       data: gameStore.currentSuggestionsCache[playerId]
     })
   }
+
+  console.log('[InfoPanel] 最终建议列表:', suggestions)
+  console.log('[InfoPanel] 建议数量:', suggestions.length)
+
   return suggestions
 })
 
@@ -132,10 +140,22 @@ const consoleText = computed(() => {
 
 // 格式化 GTO 建议
 const formatSuggestion = (suggestion: any) => {
-  return formatSuggestionToHTML(suggestion)
+  console.log('[InfoPanel.formatSuggestion] 输入:', suggestion)
+  const result = formatSuggestionToHTML(suggestion)
+  console.log('[InfoPanel.formatSuggestion] 输出 HTML 长度:', result.length)
+  return result
 }
 
-// 根据玩家ID获取行动记录
+// 获取特定索引位置的动作
+const getAction = (playerId: string, round: 'preflop' | 'flop' | 'turn' | 'river', index: number) => {
+  const actions = gameStore.actionRecords[playerId]?.[round]
+  if (!actions || index >= actions.length) {
+    return '-'
+  }
+  return actions[index]
+}
+
+// 根据玩家ID获取行动记录（保留兼容性）
 const getActionsByPlayerId = (playerId: string, round: 'preflop' | 'flop' | 'turn' | 'river') => {
   const actions = gameStore.actionRecords[playerId]?.[round]
   return actions && actions.length > 0 ? actions.join(', ') : '-'

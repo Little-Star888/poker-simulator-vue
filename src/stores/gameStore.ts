@@ -68,7 +68,7 @@ export const useGameStore = defineStore("game", {
     isGamePaused: false,
     isProcessingGameControl: false,
 
-    gtoSuggestionFilter: new Set(),
+    gtoSuggestionFilter: new Set(["P1"]), // 默认选中P1
     currentSuggestionsCache: {},
 
     handActionHistory: [],

@@ -152,9 +152,10 @@ const loadSnapshot = async (id: number) => {
     gameStore.log(`正在从数据库加载快照 (ID: ${id})...`)
 
     const data = await getSnapshotById(id)
-    console.log('📦 快照原始数据:', data)
+    console.log('📦 [ViewSnapshotModal] 快照原始数据:', data)
     console.log('  - imageData 类型:', typeof data.imageData, '长度:', data.imageData?.length)
     console.log('  - gtoSuggestions 类型:', typeof data.gtoSuggestions)
+    console.log('  - gtoSuggestions 内容:', data.gtoSuggestions)
     console.log('  - createdAt:', data.createdAt)
 
     snapshot.value = data
@@ -162,33 +163,44 @@ const loadSnapshot = async (id: number) => {
     // 解析 GTO 建议
     let allGtoSuggestions = []
     if (data.gtoSuggestions) {
+      console.log('[ViewSnapshotModal] gtoSuggestions 存在，开始解析')
       if (typeof data.gtoSuggestions === 'string') {
+        console.log('[ViewSnapshotModal] gtoSuggestions 是字符串，尝试 JSON.parse')
         try {
           allGtoSuggestions = JSON.parse(data.gtoSuggestions)
+          console.log('[ViewSnapshotModal] JSON.parse 成功，结果:', allGtoSuggestions)
         } catch (e) {
-          console.error('解析 gtoSuggestions 失败:', e)
+          console.error('[ViewSnapshotModal] 解析 gtoSuggestions 失败:', e)
           allGtoSuggestions = []
         }
       } else if (Array.isArray(data.gtoSuggestions)) {
+        console.log('[ViewSnapshotModal] gtoSuggestions 是数组，直接使用')
         allGtoSuggestions = data.gtoSuggestions
       } else if (typeof data.gtoSuggestions === 'object') {
+        console.log('[ViewSnapshotModal] gtoSuggestions 是对象，转换为数组')
         // 如果是对象，转换为数组
         allGtoSuggestions = Object.entries(data.gtoSuggestions).map(([playerId, suggestion]) => ({
           playerId,
           suggestion,
           notes: ''
         }))
+        console.log('[ViewSnapshotModal] 转换后的数组:', allGtoSuggestions)
       }
+    } else {
+      console.warn('[ViewSnapshotModal] gtoSuggestions 为空或未定义')
     }
 
-    console.log('📋 解析后的建议数量:', allGtoSuggestions.length)
+    console.log('📋 [ViewSnapshotModal] 解析后的建议数量:', allGtoSuggestions.length)
+    console.log('📋 [ViewSnapshotModal] 解析后的建议详情:', allGtoSuggestions)
     suggestions.value = allGtoSuggestions
     originalSuggestions.value = JSON.stringify(allGtoSuggestions)
 
     // 提取玩家 ID 列表
     const ids = [...new Set(allGtoSuggestions.map((s: any) => s.playerId))].sort() as string[]
+    console.log('[ViewSnapshotModal] 提取的玩家ID列表:', ids)
     playerIds.value = ids
     filterState.value = new Set(ids)
+    console.log('[ViewSnapshotModal] filterState 初始化为:', Array.from(filterState.value))
 
     gameStore.log(`✅ 快照加载成功 (${allGtoSuggestions.length} 条建议)`)
   } catch (error: any) {
@@ -208,7 +220,13 @@ const toggleFilter = (playerId: string) => {
 }
 
 const renderSuggestion = (suggestionData: any): string => {
-  return formatSuggestionToHTML(suggestionData)
+  console.log('[ViewSnapshotModal.renderSuggestion] 输入数据:', suggestionData)
+  console.log('[ViewSnapshotModal.renderSuggestion] playerId:', suggestionData.playerId)
+  console.log('[ViewSnapshotModal.renderSuggestion] suggestion:', suggestionData.suggestion)
+  const result = formatSuggestionToHTML(suggestionData)
+  console.log('[ViewSnapshotModal.renderSuggestion] 输出 HTML 长度:', result.length)
+  console.log('[ViewSnapshotModal.renderSuggestion] 输出 HTML 预览:', result.substring(0, 200))
+  return result
 }
 
 const handleSaveRemarks = async () => {
