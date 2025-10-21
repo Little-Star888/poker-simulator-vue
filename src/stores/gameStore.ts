@@ -46,6 +46,12 @@ interface GameStoreState {
   snapshotCurrentPage: number;
   snapshotTotalPages: number;
 
+  // 快照模态框
+  showSnapshotModal: boolean;
+  showViewSnapshotModal: boolean;
+  currentViewSnapshotId: number | null;
+  pendingSnapshotData: any | null;
+
   // 控制台日志
   consoleMessages: string[];
 }
@@ -90,6 +96,11 @@ export const useGameStore = defineStore("game", {
 
     snapshotCurrentPage: 0,
     snapshotTotalPages: 0,
+
+    showSnapshotModal: false,
+    showViewSnapshotModal: false,
+    currentViewSnapshotId: null,
+    pendingSnapshotData: null,
 
     consoleMessages: [],
   }),
@@ -342,9 +353,10 @@ export const useGameStore = defineStore("game", {
       }
 
       // 手动模式：等待用户输入
-      if (settingStore.mode === "manual" && currentPlayerId === "P1") {
+      if (settingStore.mode === "manual") {
         this.isWaitingForManualInput = true;
-        this.log("⏳ 等待玩家 P1 操作...");
+        this.log(`⏳ 等待玩家 ${currentPlayerId} 操作...`);
+        // TODO: 显示玩家操作面板
         return;
       }
 

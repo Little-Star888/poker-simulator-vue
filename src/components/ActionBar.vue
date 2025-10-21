@@ -148,8 +148,13 @@ const handlePause = async () => {
 
 const handleSaveSnapshot = () => {
   if (isProcessing.value || !isGameRunning.value) return
-  // TODO: Implement snapshot functionality
-  gameStore.log('💾 保存快照功能（开发中）')
+
+  // 调用全局方法打开截图选择器
+  if ((window as any).showScreenshotSelector) {
+    (window as any).showScreenshotSelector()
+  } else {
+    gameStore.log('⚠️ 截图功能未初始化')
+  }
 }
 
 const handleReplayReset = () => {

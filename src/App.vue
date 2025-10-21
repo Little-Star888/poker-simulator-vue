@@ -4,16 +4,20 @@
     <aside id="config-drawer" :class="['config-drawer', { 'is-open': isDrawerOpen }]">
       <button class="drawer-close-btn" @click="closeDrawer">&times;</button>
       <div class="config-drawer-content">
-        <ConfigPanel />
+        <ConfigPanel ref="configPanelRef" />
       </div>
     </aside>
-    <div class="drawer-overlay" @click="closeDrawer"></div>
+    <div
+      class="drawer-overlay"
+      :class="{ 'visible': isDrawerOpen }"
+      @click="closeDrawer"
+    ></div>
 
     <!-- Main Content -->
     <main class="main-content">
       <div class="table-area">
         <PokerTable />
-        <ActionBar />
+        <ActionBar @toggle-drawer="toggleDrawer" />
       </div>
 
       <div class="info-panel-area">
@@ -21,20 +25,52 @@
       </div>
     </main>
 
-    <!-- Modals -->
-    <SnapshotModal v-if="showSnapshotModal" />
-    <ViewSnapshotModal v-if="showViewSnapshotModal" />
-    <EndOfHandModal v-if="showEndOfHandModal" />
-    <DeleteConfirmPopover v-if="showDeleteConfirm" />
+    <!-- Screenshot Selection Overlay -->
+    <ScreenshotSelector
+      v-if="showScreenshotSelector"
+      @capture="handleScreenshotCapture"
+      @cancel="handleScreenshotCancel"
+    />
+
+    <!-- Snapshot Confirmation Modal -->
+    <SnapshotModal
+      v-model:visible="gameStore.showSnapshotModal"
+      :preview-image="snapshotPreviewImage"
+      :game-state="snapshotGameState"
+      :gto-suggestions="snapshotGtoSuggestions"
+      @confirm="handleSnapshotConfirm"
+      @cancel="handleSnapshotCancel"
+      @recapture="handleSnapshotRecapture"
+      @saved="handleSnapshotSaved"
+    />
+
+    <!-- View Snapshot Modal -->
+    <ViewSnapshotModal
+      v-model:visible="gameStore.showViewSnapshotModal"
+      :snapshot-id="gameStore.currentViewSnapshotId"
+      @close="handleViewSnapshotClose"
+    />
+
+    <!-- End of Hand Modal -->
+    <EndOfHandModal
+      v-if="showEndOfHandModal"
+      @confirm="handleEndOfHandConfirm"
+      @cancel="handleEndOfHandCancel"
+    />
 
     <!-- Toast Notification -->
-    <div v-if="toastMessage" class="toast-notification show" :class="{ error: toastIsError }">
+    <div
+      v-if="toastMessage"
+      class="toast-notification"
+      :class="{ show: toastVisible, error: toastIsError }"
+    >
       {{ toastMessage }}
     </div>
 
     <!-- Loader Overlay -->
     <div v-if="isLoading" class="loader-overlay">
       <div class="loader-spinner"></div>
+      <div class="loader-text">加载中...</div>
     </div>
   </div>
 </template>
@@ -42,38 +78,217 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
+import html2canvas from 'html2canvas'
 
 import ConfigPanel from '@/components/ConfigPanel.vue'
 import PokerTable from '@/components/PokerTable.vue'
 import ActionBar from '@/components/ActionBar.vue'
 import InfoPanel from '@/components/InfoPanel.vue'
+import ScreenshotSelector from '@/components/ScreenshotSelector.vue'
 import SnapshotModal from '@/components/SnapshotModal.vue'
 import ViewSnapshotModal from '@/components/ViewSnapshotModal.vue'
 import EndOfHandModal from '@/components/EndOfHandModal.vue'
-import DeleteConfirmPopover from '@/components/DeleteConfirmPopover.vue'
 
 // Stores
 const gameStore = useGameStore()
 
+// Refs
+const configPanelRef = ref<InstanceType<typeof ConfigPanel> | null>(null)
+
 // UI State
 const isDrawerOpen = ref(false)
-const showSnapshotModal = ref(false)
-const showViewSnapshotModal = ref(false)
+const showScreenshotSelector = ref(false)
 const showEndOfHandModal = ref(false)
-const showDeleteConfirm = ref(false)
 const toastMessage = ref('')
+const toastVisible = ref(false)
 const toastIsError = ref(false)
 const isLoading = ref(false)
 
+// Snapshot data
+const snapshotPreviewImage = ref<string | null>(null)
+const snapshotGameState = ref<any>(null)
+const snapshotGtoSuggestions = ref<Record<string, any>>({})
+
 // Methods
+const toggleDrawer = () => {
+  isDrawerOpen.value = !isDrawerOpen.value
+}
+
 const closeDrawer = () => {
   isDrawerOpen.value = false
 }
 
+// Screenshot handling
+const handleScreenshotCapture = async (cropOptions: any) => {
+  gameStore.log('📸 正在根据选定区域生成快照...')
+  showScreenshotSelector.value = false
+
+  try {
+    const canvas = await html2canvas(document.body, {
+      useCORS: true,
+      backgroundColor: null,
+      scale: 2,
+      ...cropOptions
+    })
+
+    const imageData = canvas.toDataURL('image/png')
+    gameStore.log('✅ 截图已生成。正在整理当前GTO建议...')
+
+    // 获取游戏状态和 GTO 建议
+    const gameState = gameStore.game?.getGameState()
+
+    // 将当前建议缓存转换为数组格式
+    const allGtoSuggestions = Object.entries(gameStore.currentSuggestionsCache).map(([playerId, suggestion]) => {
+      return {
+        playerId,
+        suggestion,
+        notes: ''
+      }
+    })
+
+    gameStore.log('✅ 所有当前GTO建议已整理。请在弹窗中确认保存。')
+
+    // 设置快照数据
+    snapshotPreviewImage.value = imageData
+    snapshotGameState.value = gameState
+    snapshotGtoSuggestions.value = gameStore.currentSuggestionsCache
+
+    // 显示快照确认模态框
+    gameStore.showSnapshotModal = true
+
+  } catch (error: any) {
+    gameStore.log('❌ 截图失败: ' + error.message)
+    console.error('截图失败:', error)
+    snapshotPreviewImage.value = null
+    snapshotGameState.value = null
+    snapshotGtoSuggestions.value = {}
+  }
+}
+
+const handleScreenshotCancel = () => {
+  showScreenshotSelector.value = false
+  gameStore.log('截图操作已取消。')
+
+  // 执行快照后的操作（如果有）
+  if (gameStore.postSnapshotAction) {
+    gameStore.postSnapshotAction()
+    gameStore.postSnapshotAction = null
+  }
+}
+
+// Snapshot modal handling
+const handleSnapshotConfirm = () => {
+  // 由 SnapshotModal 内部处理保存逻辑
+  gameStore.log('快照已确认保存')
+}
+
+const handleSnapshotCancel = () => {
+  gameStore.showSnapshotModal = false
+  snapshotPreviewImage.value = null
+  snapshotGameState.value = null
+  snapshotGtoSuggestions.value = {}
+
+  // 执行快照后的操作（如果有）
+  if (gameStore.postSnapshotAction) {
+    gameStore.postSnapshotAction()
+    gameStore.postSnapshotAction = null
+  }
+}
+
+const handleSnapshotRecapture = () => {
+  gameStore.showSnapshotModal = false
+
+  // 短暂延迟后重新打开截图选择器
+  setTimeout(() => {
+    showScreenshotSelector.value = true
+  }, 100)
+}
+
+const handleSnapshotSaved = (snapshotId: number) => {
+  // 刷新快照列表
+  if (configPanelRef.value) {
+    configPanelRef.value.refreshSnapshotList()
+  }
+
+  // 执行快照后的操作（如果有）
+  if (gameStore.postSnapshotAction) {
+    gameStore.postSnapshotAction()
+    gameStore.postSnapshotAction = null
+  }
+
+  // 自动打开查看快照模态框
+  setTimeout(() => {
+    gameStore.currentViewSnapshotId = snapshotId
+    gameStore.showViewSnapshotModal = true
+  }, 300)
+}
+
+// View snapshot modal handling
+const handleViewSnapshotClose = () => {
+  gameStore.showViewSnapshotModal = false
+  gameStore.currentViewSnapshotId = null
+}
+
+// End of hand modal handling
+const handleEndOfHandConfirm = () => {
+  showEndOfHandModal.value = false
+  // 设置快照后要执行的操作
+  gameStore.postSnapshotAction = () => {
+    gameStore.stopGame()
+  }
+  // 启动快照流程
+  showScreenshotSelector.value = true
+}
+
+const handleEndOfHandCancel = () => {
+  showEndOfHandModal.value = false
+  gameStore.stopGame()
+}
+
+// Toast notification
+const showToast = (message: string, duration: number = 2000, isError: boolean = false) => {
+  toastMessage.value = message
+  toastIsError.value = isError
+  toastVisible.value = true
+
+  setTimeout(() => {
+    toastVisible.value = false
+    setTimeout(() => {
+      toastMessage.value = ''
+    }, 300)
+  }, duration)
+}
+
+// Loader
+const showLoader = () => {
+  isLoading.value = true
+}
+
+const hideLoader = () => {
+  isLoading.value = false
+}
+
+// Expose methods to global scope for use by other components
+;(window as any).showScreenshotSelector = () => {
+  if (!gameStore.isGameRunning) {
+    gameStore.log('⚠️ 游戏未开始，无法保存快照。')
+    return
+  }
+  showScreenshotSelector.value = true
+}
+
+;(window as any).showEndOfHandModal = () => {
+  showEndOfHandModal.value = true
+}
+
+;(window as any).showToast = showToast
+;(window as any).showLoader = showLoader
+;(window as any).hideLoader = hideLoader
+
 // Initialize on mount
 onMounted(() => {
-  gameStore.initGame()
   gameStore.log('德州扑克 AI 测试模拟器已加载')
+  gameStore.log('Vue 3 + TypeScript + Pinia 版本')
 })
 </script>
 
@@ -94,7 +309,6 @@ onMounted(() => {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* --- Main Layout --- */
@@ -103,6 +317,7 @@ onMounted(() => {
   height: 100vh;
   position: relative;
   background-color: var(--bg-light);
+  overflow: hidden;
 }
 
 /* --- Config Drawer --- */
@@ -119,34 +334,44 @@ onMounted(() => {
   transition: transform 0.3s ease-in-out;
   overflow-y: auto;
   border-right: 1px solid var(--border-color);
+  box-shadow: 0 0 0 rgba(0,0,0,0);
 }
 
 .config-drawer.is-open {
   transform: translateX(0);
-  box-shadow: 3px 0 15px rgba(0,0,0,0.1);
+  box-shadow: 3px 0 15px rgba(0,0,0,0.2);
 }
 
 .config-drawer-content {
   padding: 20px;
+  padding-top: 60px;
 }
 
 .drawer-close-btn {
   position: absolute;
-  top: 10px;
+  top: 15px;
   right: 15px;
   background: none;
   border: none;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: bold;
   color: #888;
   cursor: pointer;
   padding: 0;
   line-height: 1;
   z-index: 10;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
 }
 
 .drawer-close-btn:hover {
   color: #333;
+  background-color: #f0f0f0;
 }
 
 /* --- Drawer Overlay --- */
@@ -161,11 +386,13 @@ onMounted(() => {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  pointer-events: none;
 }
 
-.config-drawer.is-open ~ .drawer-overlay {
+.drawer-overlay.visible {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 /* --- Main Content Area --- */
@@ -181,11 +408,11 @@ onMounted(() => {
 .table-area {
   width: 100%;
   height: 70vh;
-  min-height: 550px;
+  min-height: 500px;
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #e8f5e9;
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
 }
 
 /* --- Info Panel Area --- */
@@ -193,9 +420,10 @@ onMounted(() => {
   padding: 15px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   flex-grow: 1;
   overflow-y: auto;
+  background: var(--bg-light);
 }
 
 /* --- Desktop Layout --- */
@@ -205,16 +433,22 @@ onMounted(() => {
     transform: translateX(0);
     box-shadow: none;
     min-width: var(--drawer-width);
+    max-width: var(--drawer-width);
     flex-shrink: 0;
   }
 
   .drawer-overlay,
   .drawer-close-btn {
-    display: none;
+    display: none !important;
+  }
+
+  .config-drawer-content {
+    padding-top: 20px;
   }
 
   .main-content {
     flex-direction: row;
+    flex: 1;
   }
 
   .table-area {
@@ -245,6 +479,8 @@ onMounted(() => {
   opacity: 0;
   transform: translateY(-20px);
   transition: opacity 0.3s, transform 0.3s;
+  max-width: 400px;
+  word-wrap: break-word;
 }
 
 .toast-notification.show {
@@ -263,25 +499,52 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.6);
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 9999;
 }
 
 .loader-spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #3498db;
   border-radius: 50%;
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   animation: spin 1s linear infinite;
+}
+
+.loader-text {
+  color: white;
+  margin-top: 20px;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* --- Mobile Responsive --- */
+@media (max-width: 768px) {
+  .table-area {
+    height: 60vh;
+    min-height: 400px;
+  }
+
+  .info-panel-area {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .toast-notification {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
 }
 </style>
 
@@ -293,6 +556,7 @@ html, body {
   background-color: #f5f5f5;
   margin: 0;
   padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 #app {
@@ -301,27 +565,37 @@ html, body {
 }
 
 /* Section heading style */
+.section {
+  background: var(--bg-white, #ffffff);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #ddd);
+  margin-bottom: 15px;
+}
+
 .section h3 {
-  margin-bottom: 12px;
+  margin: 0 0 12px 0;
   font-size: 16px;
   color: #333;
   border-bottom: 1px solid #ddd;
   padding-bottom: 8px;
+  font-weight: 600;
 }
 
 /* Form row style */
 .form-row {
   display: flex;
   align-items: center;
-  margin: 8px 0;
+  margin: 10px 0;
   flex-wrap: wrap;
+  gap: 8px;
 }
 
 .form-row label {
-  width: auto;
-  margin-right: 10px;
   font-size: 14px;
+  color: #555;
   flex-shrink: 0;
+  min-width: 120px;
 }
 
 .form-row input,
@@ -330,6 +604,16 @@ html, body {
   font-size: 14px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  flex: 1;
+  min-width: 80px;
+  transition: border-color 0.2s;
+}
+
+.form-row input:focus,
+.form-row select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
 /* Hidden utility class */
@@ -339,34 +623,136 @@ html, body {
 
 /* Button common styles */
 .game-control-btn {
-  padding: 8px 16px;
-  font-size: 16px;
-  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
   border: none;
   color: white;
+  background-color: #007bff;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  display: flex;
+  transition: all 0.2s ease;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .game-control-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: #0069d9;
+}
+
+.game-control-btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .game-control-btn:disabled {
   background-color: #cccccc;
   color: #888888;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .game-control-btn.secondary-btn {
   background-color: #6c757d;
 }
 
-.game-control-btn.secondary-btn:hover {
+.game-control-btn.secondary-btn:hover:not(:disabled) {
   background-color: #5a6268;
+}
+
+.game-control-btn.danger-btn {
+  background-color: #dc3545;
+}
+
+.game-control-btn.danger-btn:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+/* Modal overlay base styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.modal-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modal-slide-up 0.3s ease-out;
+}
+
+@keyframes modal-slide-up {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.modal-body {
+  margin-bottom: 20px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 </style>

@@ -220,26 +220,29 @@
 
     <!-- 快照管理 -->
     <div class="section" id="snapshot-management-section">
-      <h3>💾 牌局快照管理</h3>
-      <div id="snapshot-list-container">
-        <p style="color: #666; text-align: center; padding: 20px;">
-          快照管理功能（开发中）
-        </p>
-      </div>
+      <SnapshotList
+        ref="snapshotListRef"
+        @view-snapshot="handleViewSnapshot"
+        @start-replay="handleStartReplay"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
 import { useSettingStore } from '@/stores/settingStore'
 import PresetSlot from './PresetSlot.vue'
 import CardPicker from './CardPicker.vue'
+import SnapshotList from './SnapshotList.vue'
 import type { PlayerRole } from '@/types'
 
 const gameStore = useGameStore()
 const settingStore = useSettingStore()
+
+// 快照列表引用
+const snapshotListRef = ref<InstanceType<typeof SnapshotList> | null>(null)
 
 // 计算可用的角色选项
 const availableRoles = computed<PlayerRole[]>(() => {
@@ -395,6 +398,46 @@ const getPlayerCard = (playerIndex: number, cardIndex: number): string | null =>
   const cards = settingStore.presetCards.players[playerId]
   return cards ? cards[cardIndex] : null
 }
+
+// 处理查看快照
+const handleViewSnapshot = (snapshotId: number) => {
+  gameStore.log(`📖 打开快照详情 (ID: ${snapshotId})...`)
+  gameStore.currentViewSnapshotId = snapshotId
+  gameStore.showViewSnapshotModal = true
+}
+
+// 处理开始回放
+const handleStartReplay = async (snapshotId: number) => {
+  gameStore.log(`▶️ 准备回放快照 (ID: ${snapshotId})...`)
+  try {
+    await gameStore.startReplay(snapshotId)
+  } catch (error: any) {
+    gameStore.log(`❌ 回放失败: ${error.message}`)
+    console.error('回放失败:', error)
+  }
+}
+
+// 刷新快照列表（供外部调用）
+const refreshSnapshotList = () => {
+  if (snapshotListRef.value) {
+    snapshotListRef.value.refresh(snapshotListRef.value.currentPage)
+  }
+}
+
+// 暴露方法供父组件使用
+defineExpose({
+  refreshSnapshotList
+})
+
+// 监听预设启用状态变化</text>
+// 监听游戏模式变化
+watch(() => settingStore.mode, (newMode) => {
+  if (newMode === 'auto') {
+    gameStore.isWaitingForManualInput = false
+    // TODO: hideAllActionPopups()
+    gameStore.log('🔄 切换到自动模式')
+  }
+})
 
 // 监听预设启用状态变化
 watch(anyPresetEnabled, (enabled) => {
