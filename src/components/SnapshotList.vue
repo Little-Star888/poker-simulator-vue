@@ -56,7 +56,7 @@
               @keydown.esc="handleNameCancel"
             />
             <br>
-            <small>{{ formatTimestamp(snapshot.createdAt) }}</small>
+            <small>{{ formatTimestamp(snapshot) }}</small>
           </div>
 
           <div class="snapshot-actions">
@@ -195,19 +195,22 @@ const loadSnapshots = async (page: number = 0) => {
   }
 }
 
-const formatTimestamp = (createdAt: string): string => {
-  if (!createdAt) {
-    console.warn('createdAt is empty')
+const formatTimestamp = (snapshot: any): string => {
+  // 兼容timestamp和createdAt两种字段名
+  const timeValue = snapshot.createdAt || snapshot.timestamp
+
+  if (!timeValue) {
+    console.warn('时间字段为空，快照对象:', snapshot)
     return '未知时间'
   }
 
   try {
-    const date = new Date(createdAt)
+    const date = new Date(timeValue)
 
     // 检查日期是否有效
     if (isNaN(date.getTime())) {
-      console.warn('Invalid date:', createdAt)
-      return createdAt
+      console.warn('无效的日期:', timeValue)
+      return String(timeValue)
     }
 
     return date.toLocaleString('zh-CN', {
@@ -219,8 +222,8 @@ const formatTimestamp = (createdAt: string): string => {
       second: '2-digit'
     })
   } catch (error) {
-    console.error('Date formatting error:', error, createdAt)
-    return createdAt || '未知时间'
+    console.error('日期格式化错误:', error, timeValue)
+    return String(timeValue) || '未知时间'
   }
 }
 

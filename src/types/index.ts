@@ -126,6 +126,7 @@ export interface SnapshotSummary {
   id: number;
   name: string;
   createdAt: string;
+  timestamp?: string; // 兼容后端可能返回的timestamp字段
   thumbnailUrl?: string;
 }
 

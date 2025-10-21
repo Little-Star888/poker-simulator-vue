@@ -663,6 +663,15 @@ html, body {
   background-color: #c82333;
 }
 
+/* Start button specific style - green */
+#start-btn {
+  background-color: #28a745 !important;
+}
+
+#start-btn:hover:not(:disabled) {
+  background-color: #218838 !important;
+}
+
 /* Modal overlay base styles */
 .modal-overlay {
   position: fixed;

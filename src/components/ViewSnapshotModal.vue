@@ -119,6 +119,7 @@
 import { ref, watch } from 'vue'
 import { getSnapshotById, updateSnapshot } from '@/api/snapshotService'
 import { useGameStore } from '@/stores/gameStore'
+import { formatSuggestionToHTML } from '@/utils/suggestionFormatter'
 
 interface Props {
   visible: boolean
@@ -207,100 +208,7 @@ const toggleFilter = (playerId: string) => {
 }
 
 const renderSuggestion = (suggestionData: any): string => {
-  const { playerId, suggestion } = suggestionData
-
-  if (!suggestion) {
-    return `<div style="color: #ff6b6b;">建议数据为空。</div>`
-  }
-
-  if (suggestion.error) {
-    return `<div style="color: #ff6b6b;">获取建议失败: ${suggestion.error}</div>`
-  }
-
-  const phaseStr = suggestion?.localResult?.strategyPhase?.toLowerCase() || suggestion?.phase?.toLowerCase() || 'unknown'
-  const phase = phaseStr.replace('_', '')
-
-  let html = `<h4 style="margin: 0 0 8px 0; color: #66d9ef;">给 ${playerId} 的建议 <span style="color: #fd971f;">[${phase.toUpperCase()}]</span>:</h4>`
-
-  if ((phase === 'preflop' || phase === 'flop' || phase === 'turn' || phase === 'river') && suggestion.localResult) {
-    try {
-      const local = suggestion.localResult
-
-      // 牌局信息
-      html += `<h5 style="color: #f92672; margin-top: 12px; margin-bottom: 8px; border-bottom: 1px solid #555; padding-bottom: 4px;">牌局信息</h5>`
-
-      if (suggestion.myCards) {
-        html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">手牌: </strong>${suggestion.myCards.join(', ')}</div>`
-      }
-
-      if (phase !== 'preflop') {
-        if (suggestion.boardCards) {
-          html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">公共牌: </strong>${suggestion.boardCards.join(', ')}</div>`
-        }
-        if (local.boardType) {
-          html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">牌面: </strong>${local.boardType}</div>`
-        }
-        if (local.handType) {
-          html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">牌型: </strong>${local.handType}</div>`
-        }
-      }
-
-      // 局势分析
-      html += `<h5 style="color: #f92672; margin-top: 12px; margin-bottom: 8px; border-bottom: 1px solid #555; padding-bottom: 4px;">局势分析</h5>`
-
-      if (phase !== 'preflop' && local.hasPosition !== undefined) {
-        html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">位置: </strong>${local.hasPosition ? '有利位置' : '不利位置'}</div>`
-      }
-
-      if (local.scenarioDescription) {
-        html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">行动场景: </strong>${local.scenarioDescription}</div>`
-      }
-
-      // 数据参考
-      if (phase !== 'preflop') {
-        html += `<h5 style="color: #f92672; margin-top: 12px; margin-bottom: 8px; border-bottom: 1px solid #555; padding-bottom: 4px;">数据参考</h5>`
-
-        if (local.equity) {
-          const parts = []
-          if (local.equity.winRate !== null) parts.push(`胜率: ${local.equity.winRate}%`)
-          if (local.equity.potOdds !== null) parts.push(`底池赔率: ${local.equity.potOdds}%`)
-          if (local.action !== null) parts.push(`建议: ${local.action}`)
-          if (parts.length > 0) {
-            html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">本地计算: </strong>${parts.join('， ')}</div>`
-          }
-        }
-
-        if (suggestion.thirdPartyResult?.equity) {
-          const treys = suggestion.thirdPartyResult.equity
-          const parts = []
-          if (treys.winRate !== null) parts.push(`胜率: ${treys.winRate}%`)
-          if (treys.potOdds !== null) parts.push(`底池赔率: ${treys.potOdds}%`)
-          if (treys.action) parts.push(`建议: ${treys.action}`)
-          if (parts.length > 0) {
-            html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">Treys (仅作对比参考): </strong>${parts.join('， ')}</div>`
-          }
-        }
-      }
-
-      // 最终建议
-      html += `<h5 style="color: #f92672; margin-top: 12px; margin-bottom: 8px; border-bottom: 1px solid #555; padding-bottom: 4px;">最终建议</h5>`
-      html += `<div style="margin-bottom: 4px;"><strong style="color: #a6e22e;">行动: </strong><strong style="color: #e6db74; font-size: 1.2em;">${local.action || '无'}</strong></div>`
-
-      const reasoningText = phase === 'preflop'
-        ? (local.reasoning || local.description || '')
-        : `(以本地计算为准) ${local.reasoning || ''}`
-
-      html += `<div style="line-height: 1.6; margin-top: 4px;"><strong style="color: #a6e22e;">理由: </strong>${reasoningText}</div>`
-
-    } catch (e) {
-      console.error(`Error formatting ${phase} suggestion:`, e, suggestion)
-      html += `<pre style="margin: 0; white-space: pre-wrap; word-break: break-all;">${JSON.stringify(suggestion, null, 2)}</pre>`
-    }
-  } else {
-    html += `<pre style="margin: 0; white-space: pre-wrap; word-break: break-all;">${JSON.stringify(suggestion, null, 2)}</pre>`
-  }
-
-  return html
+  return formatSuggestionToHTML(suggestionData)
 }
 
 const handleSaveRemarks = async () => {

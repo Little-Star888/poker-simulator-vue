@@ -70,9 +70,16 @@ const pot = computed(() => gameState.value?.pot || 0)
 
 // 获取玩家位置（圆形布局）
 const getPlayerPosition = (index: number) => {
-  // 使用原版固定角度：P1=90°(下), P2=135°, P3=180°(左), P4=225°, P5=270°(上), P6=315°, P7=0°(右), P8=45°
-  const seatAngles = [90, 135, 180, 225, 270, 315, 0, 45]
-  const angle = seatAngles[index - 1]
+  // P1 固定在最下方（90°），其他玩家平均分配角度
+  let angle: number
+  if (index === 1) {
+    angle = 90 // P1 固定在最下方
+  } else {
+    // 其他玩家平均分配剩余角度
+    const angleStep = 360 / playerCount.value
+    angle = 90 + angleStep * (index - 1)
+  }
+
   const radius = 42 // percentage
 
   const x = 50 + radius * Math.cos((angle * Math.PI) / 180)

@@ -15,12 +15,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="i in playerCount" :key="i">
-              <td><strong>P{{ i }}</strong></td>
-              <td>{{ getActions(i, 'preflop') }}</td>
-              <td>{{ getActions(i, 'flop') }}</td>
-              <td>{{ getActions(i, 'turn') }}</td>
-              <td>{{ getActions(i, 'river') }}</td>
+            <tr v-for="playerId in sortedPlayerIds" :key="playerId">
+              <td><strong>{{ playerId }}</strong></td>
+              <td>{{ getActionsByPlayerId(playerId, 'preflop') }}</td>
+              <td>{{ getActionsByPlayerId(playerId, 'flop') }}</td>
+              <td>{{ getActionsByPlayerId(playerId, 'turn') }}</td>
+              <td>{{ getActionsByPlayerId(playerId, 'river') }}</td>
             </tr>
           </tbody>
         </table>
@@ -37,8 +37,7 @@
             :key="index"
             class="suggestion-item"
           >
-            <strong>{{ suggestion.playerId }}:</strong>
-            <pre>{{ formatSuggestion(suggestion.data) }}</pre>
+            <div v-html="formatSuggestion(suggestion)"></div>
           </div>
         </div>
         <div v-else class="empty-state">
@@ -64,6 +63,7 @@
 import { computed, ref, watch, nextTick } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
 import { useSettingStore } from '@/stores/settingStore'
+import { formatSuggestionToHTML } from '@/utils/suggestionFormatter'
 
 const gameStore = useGameStore()
 const settingStore = useSettingStore()
@@ -73,6 +73,47 @@ const consoleLog = ref<HTMLTextAreaElement>()
 
 // 计算属性
 const playerCount = computed(() => settingStore.playerCount)
+
+// 按盲注顺序排序的玩家ID列表
+const sortedPlayerIds = computed(() => {
+  const gameState = gameStore.currentGameState
+  if (!gameState || !gameState.players) {
+    // 如果没有游戏状态，返回默认顺序
+    return Array.from({ length: playerCount.value }, (_, i) => `P${i + 1}`)
+  }
+
+  // 角色顺序：SB, BB, 然后按位置顺序
+  const roleOrder = ['SB', 'BB', 'UTG', 'UTG+1', 'UTG+2', 'MP1', 'MP2', 'HJ', 'CO', 'BTN']
+
+  // 创建玩家ID到角色的映射
+  const playerRoleMap = new Map<string, string>()
+  gameState.players.forEach(player => {
+    if (player.role) {
+      playerRoleMap.set(player.id, player.role)
+    }
+  })
+
+  // 按角色顺序排序玩家
+  const allPlayerIds = Array.from({ length: playerCount.value }, (_, i) => `P${i + 1}`)
+
+  return allPlayerIds.sort((a, b) => {
+    const roleA = playerRoleMap.get(a)
+    const roleB = playerRoleMap.get(b)
+
+    if (!roleA && !roleB) return 0
+    if (!roleA) return 1
+    if (!roleB) return -1
+
+    const indexA = roleOrder.indexOf(roleA)
+    const indexB = roleOrder.indexOf(roleB)
+
+    if (indexA === -1 && indexB === -1) return 0
+    if (indexA === -1) return 1
+    if (indexB === -1) return -1
+
+    return indexA - indexB
+  })
+})
 
 const currentSuggestions = computed(() => {
   const suggestions = []
@@ -91,40 +132,19 @@ const consoleText = computed(() => {
 
 // 格式化 GTO 建议
 const formatSuggestion = (suggestion: any) => {
-  if (!suggestion || !suggestion.response) {
-    return '无建议数据'
-  }
-
-  try {
-    const response = suggestion.response
-    let output = ''
-
-    if (response.advices && Array.isArray(response.advices)) {
-      output += '建议动作:\n'
-      response.advices.forEach((advice: any, index: number) => {
-        output += `  ${index + 1}. ${advice.action} - 频率: ${(advice.frequency * 100).toFixed(1)}%`
-        if (advice.sizingRange) {
-          output += ` (${advice.sizingRange.min}-${advice.sizingRange.max})`
-        }
-        output += '\n'
-      })
-    }
-
-    if (response.explanation) {
-      output += `\n说明: ${response.explanation}`
-    }
-
-    return output || JSON.stringify(suggestion, null, 2)
-  } catch (error) {
-    return JSON.stringify(suggestion, null, 2)
-  }
+  return formatSuggestionToHTML(suggestion)
 }
 
-// 获取玩家的行动记录
-const getActions = (playerIndex: number, round: 'preflop' | 'flop' | 'turn' | 'river') => {
-  const playerId = `P${playerIndex}`
+// 根据玩家ID获取行动记录
+const getActionsByPlayerId = (playerId: string, round: 'preflop' | 'flop' | 'turn' | 'river') => {
   const actions = gameStore.actionRecords[playerId]?.[round]
   return actions && actions.length > 0 ? actions.join(', ') : '-'
+}
+
+// 获取玩家的行动记录（保留兼容性）
+const getActions = (playerIndex: number, round: 'preflop' | 'flop' | 'turn' | 'river') => {
+  const playerId = `P${playerIndex}`
+  return getActionsByPlayerId(playerId, round)
 }
 
 // 自动滚动控制台到底部
@@ -185,13 +205,25 @@ watch(consoleText, async () => {
   padding-bottom: 0;
 }
 
-.suggestion-item strong {
+.suggestion-item :deep(h4) {
+  margin: 0 0 8px 0;
   color: #66d9ef;
-  display: block;
-  margin-bottom: 5px;
 }
 
-.suggestion-item pre {
+.suggestion-item :deep(h5) {
+  color: #f92672;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #555;
+  padding-bottom: 4px;
+  font-size: 14px;
+}
+
+.suggestion-item :deep(strong) {
+  color: #a6e22e;
+}
+
+.suggestion-item :deep(pre) {
   margin: 0;
   white-space: pre-wrap;
   word-wrap: break-word;
