@@ -163,7 +163,7 @@
           style="margin-top: 15px;"
         >
           <h4>公共牌:</h4>
-          <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+          <div class="community-cards-row">
             <strong>Flop:</strong>
             <PresetSlot
               v-for="i in 3"
@@ -173,14 +173,14 @@
               :card-index="i - 1"
               :card="settingStore.presetCards.flop[i - 1]"
             />
-            <strong style="margin-left: 5px;">Turn:</strong>
+            <strong class="turn-label">Turn:</strong>
             <PresetSlot
               type="community"
               stage="turn"
               :card-index="0"
               :card="settingStore.presetCards.turn[0]"
             />
-            <strong style="margin-left: 5px;">River:</strong>
+            <strong class="river-label">River:</strong>
             <PresetSlot
               type="community"
               stage="river"
@@ -194,7 +194,7 @@
         <div
           v-show="settingStore.usePresetHands"
           id="preset-player-hands-container"
-          style="margin-top: 15px; margin-bottom: 15px;"
+          class="preset-player-hands-container"
         >
           <h4>玩家手牌:</h4>
           <div
@@ -460,7 +460,7 @@ onMounted(() => {
 .config-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0px; /* 减小间距，介于原版和当前之间 */
 }
 
 .section {
@@ -499,6 +499,34 @@ select:disabled {
   min-width: 30px;
   font-size: 12px;
   color: #333;
+}
+
+/* 公共牌槽位布局 */
+.community-cards-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap; /* 确保不换行 */
+}
+
+.community-cards-row .turn-label,
+.community-cards-row .river-label {
+  margin-left: 5px;
+}
+
+/* 玩家手牌槽位布局 - 与原版一致 */
+.preset-player-hands-container {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 160px); /* 与原版一致 */
+  gap: 10px;
+  justify-content: center;
+}
+
+.preset-player-hands-container h4 {
+  margin-bottom: 0; /* 与原版一致 */
+  grid-column: 1 / -1; /* 标题跨所有列 */
 }
 
 /* 响应式调整 */
