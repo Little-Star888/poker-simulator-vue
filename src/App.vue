@@ -638,7 +638,8 @@ html, body {
 
 /* 玩家数量和底池类型的特殊样式 */
 .player-count-input {
-  width: 50px;
+  width: 40px !important;
+  min-width: 30px !important;
 }
 
 .pot-type-label {
@@ -668,13 +669,23 @@ html, body {
   }
 }
 
-.form-row input,
+.form-row input:not(.player-count-input),
 .form-row select {
   padding: 6px 10px;
   font-size: 14px;
   border: 1px solid #ccc;
   border-radius: 4px;
   min-width: 80px;
+  transition: border-color 0.2s;
+}
+
+.form-row input.player-count-input {
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 50px;
+  min-width: 50px;
   transition: border-color 0.2s;
 }
 

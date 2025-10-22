@@ -197,20 +197,22 @@
           class="preset-player-hands-container"
         >
           <h4>玩家手牌:</h4>
-          <div
-            v-for="i in settingStore.playerCount"
-            :key="`player-${i}`"
-            class="player-hand-preset"
-          >
-            <strong>P{{ i }}:</strong>
-            <PresetSlot
-              v-for="j in 2"
-              :key="`player-${i}-card-${j}`"
-              type="player"
-              :player-id="`P${i}`"
-              :card-index="j - 1"
-              :card="getPlayerCard(i, j - 1)"
-            />
+          <div class="preset-player-hands-grid">
+            <div
+              v-for="i in settingStore.playerCount"
+              :key="`player-${i}`"
+              class="player-hand-preset"
+            >
+              <strong>P{{ i }}:</strong>
+              <PresetSlot
+                v-for="j in 2"
+                :key="`player-${i}-card-${j}`"
+                type="player"
+                :player-id="`P${i}`"
+                :card-index="j - 1"
+                :card="getPlayerCard(i, j - 1)"
+              />
+            </div>
           </div>
         </div>
 
@@ -445,6 +447,12 @@ watch(() => settingStore.mode, (newMode) => {
 watch(anyPresetEnabled, (enabled) => {
   if (!enabled) {
     resetPresetData()
+  } else if (enabled && !gameStore.isPresetUIInitialized) {
+    // 预设功能刚启用时，初始化并激活第一个槽位
+    initPresetUI()
+    setTimeout(() => {
+      activateNextEmptySlot()
+    }, 200)
   }
 })
 
@@ -452,6 +460,10 @@ watch(anyPresetEnabled, (enabled) => {
 onMounted(() => {
   if (anyPresetEnabled.value) {
     initPresetUI()
+    // 延迟激活第一个槽位，确保DOM已渲染
+    setTimeout(() => {
+      activateNextEmptySlot()
+    }, 200)
   }
 })
 </script>
@@ -514,19 +526,25 @@ select:disabled {
   margin-left: 5px;
 }
 
-/* 玩家手牌槽位布局 - 与原版一致 */
+/* 玩家手牌槽位布局 - 修复标题对齐问题 */
 .preset-player-hands-container {
   margin-top: 15px;
   margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preset-player-hands-container h4 {
+  margin: 10px 0 8px 0; /* 与公共牌标题保持一致 */
+  text-align: left; /* 左对齐，与公共牌标题一致 */
+}
+
+.preset-player-hands-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, 160px); /* 与原版一致 */
   gap: 10px;
   justify-content: center;
-}
-
-.preset-player-hands-container h4 {
-  margin-bottom: 0; /* 与原版一致 */
-  grid-column: 1 / -1; /* 标题跨所有列 */
 }
 
 /* 响应式调整 */

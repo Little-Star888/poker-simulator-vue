@@ -150,6 +150,23 @@ export const useGameStore = defineStore("game", {
       if (!this.game) return 0;
       return this.game.players.filter((p) => !p.isFolded).length;
     },
+
+    /**
+     * 判断回放是否在开始位置
+     */
+    isAtReplayBeginning(): boolean {
+      return this.isInReplayMode && this.currentReplayStep <= 0;
+    },
+
+    /**
+     * 判断回放是否在结束位置
+     */
+    isAtReplayEnd(): boolean {
+      return (
+        this.isInReplayMode &&
+        this.currentReplayStep >= this.replayData.actions.length
+      );
+    },
   },
 
   actions: {

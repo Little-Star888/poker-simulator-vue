@@ -58,7 +58,7 @@
         id="replay-next-btn"
         class="game-control-btn"
         @click="handleReplayNext"
-        :disabled="isProcessing"
+        :disabled="isProcessing || isReplayPlaying || gameStore.isAtReplayEnd"
       >
         ⏭️ 下一步
       </button>
@@ -67,7 +67,7 @@
         id="replay-prev-btn"
         class="game-control-btn"
         @click="handleReplayPrev"
-        :disabled="isProcessing"
+        :disabled="isProcessing || isReplayPlaying || gameStore.isAtReplayBeginning"
       >
         ⏮️ 上一步
       </button>
@@ -76,7 +76,7 @@
         id="replay-reset-btn"
         class="game-control-btn"
         @click="handleReplayReset"
-        :disabled="isProcessing"
+        :disabled="isProcessing || isReplayPlaying"
       >
         🔄 重置
       </button>
