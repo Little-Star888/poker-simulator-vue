@@ -478,10 +478,10 @@ onMounted(() => {
 }
 
 .section {
-  background: var(--bg-white);
+  background: #ffffff; /* 使用硬编码颜色值 */
   padding: 15px;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #ddd; /* 使用硬编码颜色值 */
 }
 
 .readonly-input {

@@ -537,6 +537,108 @@ onMounted(() => {
     left: 10px;
     max-width: none;
   }
+
+  /* 移动端配置面板样式调整，与桌面端保持一致 */
+  .config-drawer {
+    max-width: 85vw; /* 增加最大宽度 */
+    background: #ffffff !important; /* 确保背景色正确显示 */
+    border-right: 1px solid #ddd !important; /* 确保边框显示 */
+    box-shadow: 3px 0 15px rgba(0,0,0,0.2) !important; /* 确保阴影显示 */
+  }
+
+  .config-drawer-content {
+    padding: 15px;
+    padding-top: 60px; /* 保持顶部空间给关闭按钮 */
+  }
+
+  .section {
+    padding: 12px; /* 稍微减少内边距 */
+    margin-bottom: 10px;
+    background: #ffffff !important; /* 确保section背景色 */
+    border: 1px solid #ddd !important; /* 确保边框显示 */
+  }
+
+  .section h3 {
+    font-size: 15px; /* 稍微减小标题字体 */
+    margin-bottom: 10px;
+  }
+
+  .form-row {
+    margin: 6px 0; /* 减少行间距 */
+    font-size: 13px; /* 稍微减小字体 */
+  }
+
+  .form-row label {
+    font-size: 13px;
+  }
+
+  .form-row input,
+  .form-row select {
+    font-size: 13px;
+    padding: 5px 8px; /* 稍微减小内边距 */
+  }
+
+  /* 移动端特殊样式调整 */
+  @media (max-width: 480px) {
+    .config-drawer-content {
+      padding: 12px;
+      padding-top: 60px;
+    }
+
+    .section {
+      padding: 10px;
+      background: #ffffff !important; /* 确保小屏幕背景色 */
+      border: 1px solid #ddd !important; /* 确保边框显示 */
+    }
+
+    .section h3 {
+      font-size: 14px;
+    }
+
+    .form-row {
+      font-size: 12px;
+    }
+
+    .form-row label {
+      font-size: 12px;
+    }
+
+    .form-row input,
+    .form-row select {
+      font-size: 12px;
+      padding: 4px 6px;
+    }
+
+    /* 表单行在小屏幕上的布局调整 */
+    .form-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    .form-row label {
+      margin-right: 0;
+      margin-bottom: 2px;
+    }
+
+    /* GTO筛选在小屏幕上的布局 */
+    .gto-filter-players {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* GTO建议阶段容器在小屏幕上的布局 */
+    #suggestion-phases {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    #suggestion-phases label {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
 }
 </style>
 
@@ -558,10 +660,18 @@ html, body {
 
 /* Section heading style */
 .section {
-  background: var(--bg-white, #ffffff);
+  background: #ffffff !important;
   padding: 15px;
   border-radius: 8px;
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid #ddd !important;
+}
+
+/* 移动端配置面板强制背景色 */
+@media (max-width: 768px) {
+  .config-drawer .section {
+    background: #ffffff !important;
+    border: 1px solid #ddd !important;
+  }
 }
 
 .section h3 {
