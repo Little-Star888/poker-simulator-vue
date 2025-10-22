@@ -103,7 +103,7 @@
 
       <div class="form-row">
         <label>P1开局位置:</label>
-        <select v-model="settingStore.p1Role">
+        <select v-model="settingStore.p1Role" class="role-select" style="width:72px;">
           <option value="random">随机</option>
           <option v-for="role in availableRoles" :key="role" :value="role">
             {{ role }}
@@ -117,13 +117,15 @@
           type="number"
           v-model.number="settingStore.minStack"
           min="1"
-          style="width:80px;"
+          class="stack-input"
+          style="width:65px;"
         /> -
         <input
           type="number"
           v-model.number="settingStore.maxStack"
           min="1"
-          style="width:80px;"
+          class="stack-input"
+          style="width:65px;"
         />
       </div>
     </div>
@@ -549,6 +551,24 @@ select:disabled {
   justify-content: center;
 }
 
+/* 移动端手牌槽位布局优化 */
+@media (max-width: 768px) {
+  .preset-player-hands-grid {
+    grid-template-columns: repeat(2, 1fr); /* 移动端固定两列 */
+    gap: 8px;
+    justify-content: stretch;
+  }
+}
+
+/* 小屏幕手牌槽位进一步优化 */
+@media (max-width: 480px) {
+  .preset-player-hands-grid {
+    grid-template-columns: repeat(2, 1fr); /* 保持两列 */
+    gap: 6px;
+    padding: 0 5px; /* 添加一些内边距 */
+  }
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .config-panel {
@@ -568,9 +588,28 @@ select:disabled {
     font-size: 13px;
   }
 
+  .player-hand-preset {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #eee;
+  }
+
   .player-hand-preset strong {
-    min-width: 25px;
-    font-size: 11px;
+    min-width: 35px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  /* 优化PresetSlot在移动端的显示 */
+  .preset-player-hands-grid .preset-card-slot {
+    width: 45px;
+    height: 55px;
+    flex: 1;
   }
 }
 </style>

@@ -540,7 +540,8 @@ onMounted(() => {
 
   /* 移动端配置面板样式调整，与桌面端保持一致 */
   .config-drawer {
-    max-width: 85vw; /* 增加最大宽度 */
+    width: 90vw; /* 增加宽度到90%视窗宽度 */
+    max-width: 90vw; /* 保持最大宽度 */
     background: #ffffff !important; /* 确保背景色正确显示 */
     border-right: 1px solid #ddd !important; /* 确保边框显示 */
     box-shadow: 3px 0 15px rgba(0,0,0,0.2) !important; /* 确保阴影显示 */
@@ -779,8 +780,8 @@ html, body {
   }
 }
 
-.form-row input:not(.player-count-input),
-.form-row select:not(.mode-select):not(.pot-type-select) {
+.form-row input:not(.player-count-input):not(.blind-input):not(.delay-input):not(.stack-input),
+.form-row select:not(.mode-select):not(.pot-type-select):not(.role-select) {
   padding: 6px 10px;
   font-size: 14px;
   border: 1px solid #ccc;
@@ -817,6 +818,26 @@ html, body {
   border-radius: 4px;
   width: 50px;
   min-width: 45px;
+  transition: border-color 0.2s;
+}
+
+.form-row select.role-select {
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 72px;
+  min-width: 65px;
+  transition: border-color 0.2s;
+}
+
+.form-row input.stack-input {
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 65px;
+  min-width: 60px;
   transition: border-color 0.2s;
 }
 
