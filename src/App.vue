@@ -577,7 +577,7 @@ html, body {
 .form-row {
   display: flex;
   align-items: center;
-  margin: 10px 0;
+  margin: 8px 0;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -586,7 +586,33 @@ html, body {
   font-size: 14px;
   color: #555;
   flex-shrink: 0;
-  min-width: 120px;
+  width: auto; /* 让标签根据其内容自动调整宽度 */
+  margin-right: 10px; /* 在标签和输入框之间添加一些间距 */
+}
+
+/* 特殊处理包含checkbox的label */
+.form-row label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 8px;
+}
+
+.form-row label:has(input[type="checkbox"]) input[type="checkbox"] {
+  min-width: auto;
+  margin: 0;
+}
+
+/* GTO筛选玩家选项容器 */
+.gto-filter-players {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0px;
+}
+
+.gto-filter-players label {
+  margin-right: 0; /* 覆盖默认的margin-right */
 }
 
 .form-row input,
@@ -595,7 +621,6 @@ html, body {
   font-size: 14px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  flex: 1;
   min-width: 80px;
   transition: border-color 0.2s;
 }

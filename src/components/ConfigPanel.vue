@@ -61,11 +61,10 @@
 
       <div class="form-row">
         <label>GTO建议筛选:</label>
-        <div id="gto-filter-players" style="display: flex; flex-wrap: wrap; align-items: center;">
+        <div id="gto-filter-players" class="gto-filter-players">
           <label
             v-for="i in settingStore.playerCount"
             :key="i"
-            style="margin-right: 10px; width: auto;"
           >
             <input
               type="checkbox"
@@ -132,7 +131,7 @@
       <h3>🃏 牌局预设</h3>
       <div class="form-row">
         <label>预设选项:</label>
-        <label style="width: auto; margin-left: 20px;">
+        <label>
           <input
             type="checkbox"
             v-model="settingStore.usePresetCommunity"
@@ -141,7 +140,7 @@
           />
           预设公共牌
         </label>
-        <label style="width: auto; margin-left: 10px;">
+        <label>
           <input
             type="checkbox"
             v-model="settingStore.usePresetHands"
