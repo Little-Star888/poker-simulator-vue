@@ -9,6 +9,7 @@ import type {
 import { PokerGame } from "@/core/PokerGame";
 import { getDecision } from "@/core/AI";
 import { getSuggestion } from "@/api/gtoService";
+import { getSnapshotById } from "@/api/snapshotService";
 import { useSettingStore } from "./settingStore";
 
 interface GameStoreState {
@@ -257,6 +258,15 @@ export const useGameStore = defineStore("game", {
 
         // 开始翻前轮
         this.game!.startNewRound("preflop");
+
+        // 为回放记录包含初始筹码和手牌的"创世"状态
+        this.handActionHistory.push({
+          type: "initialState",
+          players: JSON.parse(JSON.stringify(this.game!.players)), // 深拷贝
+          action: "initialState",
+          round: "preflop",
+          timestamp: Date.now(),
+        });
 
         // 记录盲注动作到 ActionSheet
         const gameState = this.game!.getGameState();
@@ -536,6 +546,7 @@ export const useGameStore = defineStore("game", {
     enterReplayMode() {
       this.isInReplayMode = true;
       this.stopGame();
+      this.log("[REPLAY] 进入回放模式");
     },
 
     /**
@@ -548,6 +559,341 @@ export const useGameStore = defineStore("game", {
         clearInterval(this.replayInterval);
         this.replayInterval = null;
       }
+      this.stopGame();
+      this.log("[REPLAY] 已退出回放模式");
+    },
+
+    /**
+     * 开始回放
+     * @param snapshotId 快照ID
+     */
+    async startReplay(snapshotId: number) {
+      if (this.isGameRunning) {
+        this.log("⚠️ 请先停止当前牌局，再开始回放");
+        return;
+      }
+
+      this.log(`[REPLAY] 开始加载快照 #${snapshotId} 用于回放...`);
+
+      try {
+        // 从API获取真实的快照数据
+        const snapshot = await getSnapshotById(snapshotId);
+
+        if (!snapshot.settings || !snapshot.actionHistory) {
+          this.log(
+            "❌ 回放失败：此快照缺少回放所需的 settings 或 actionHistory 数据",
+          );
+          return;
+        }
+
+        // 解析并设置回放数据（与原版逻辑一致）
+        this.replayData.settings =
+          typeof snapshot.settings === "string"
+            ? JSON.parse(snapshot.settings)
+            : snapshot.settings;
+
+        this.replayData.actions =
+          typeof snapshot.actionHistory === "string"
+            ? JSON.parse(snapshot.actionHistory)
+            : snapshot.actionHistory;
+
+        this.replayData.gameState =
+          typeof snapshot.gameState === "string"
+            ? JSON.parse(snapshot.gameState)
+            : snapshot.gameState;
+
+        this.stopGame(); // 确保游戏停止，UI干净
+        this.enterReplayMode();
+        this.resetReplay();
+      } catch (error: any) {
+        this.log(`❌ 回放启动失败: ${error.message}`);
+        console.error("回放启动失败:", error);
+      }
+    },
+
+    /**
+     * 重置回放
+     */
+    resetReplay() {
+      if (!this.isInReplayMode) return;
+
+      this.currentReplayStep = 0;
+      if (this.replayInterval) {
+        clearInterval(this.replayInterval);
+        this.replayInterval = null;
+      }
+
+      if (!this.replayData.settings || !this.replayData.gameState) {
+        this.log("❌ [REPLAY] 回放数据不完整");
+        return;
+      }
+
+      // 1. 使用快照中的设置重置游戏引擎，并强制使用原始的庄家位置
+      if (!this.game) {
+        this.initGame();
+      }
+      this.game!.reset(
+        this.replayData.settings,
+        this.replayData.gameState.dealerIndex,
+      );
+
+      // 2. 找到创世事件，并用它来覆盖玩家状态（初始筹码和手牌）
+      const initialStateEvent = this.replayData.actions.find(
+        (e) => e.type === "initialState",
+      );
+      if (initialStateEvent && initialStateEvent.players) {
+        this.game!.players = JSON.parse(
+          JSON.stringify(initialStateEvent.players),
+        );
+      } else {
+        this.log("❌ [REPLAY] 无法开始回放：未找到initialState事件");
+        return;
+      }
+
+      // 3. 开始翻前回合，这将自动处理盲注并设置正确的第一个行动者
+      this.game!.startNewRound("preflop");
+
+      // 4. 重新初始化ActionRecords结构（与原版renderActionSheet逻辑一致）
+      const players = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"];
+      players.forEach((playerId) => {
+        this.actionRecords[playerId] = {
+          preflop: [],
+          flop: [],
+          turn: [],
+          river: [],
+        };
+      });
+
+      // 5. 渲染UI（与原版一致，只创建空表格，不预先添加盲注记录）
+      this.updateUIAfterReplayStep();
+
+      this.log("[REPLAY] 回放已重置，准备就绪");
+    },
+
+    /**
+     * 执行回放的下一步
+     */
+    nextReplayStep(isManual = false) {
+      if (!this.isInReplayMode || !this.game) return;
+
+      if (this.currentReplayStep >= this.replayData.actions.length) {
+        if (this.replayInterval) {
+          clearInterval(this.replayInterval);
+          this.replayInterval = null;
+        }
+        this.log("[REPLAY] 回放结束");
+        return;
+      }
+
+      const event = this.replayData.actions[this.currentReplayStep];
+
+      if (event.type === "initialState") {
+        // 初始状态事件已在resetReplay中处理
+        this.currentReplayStep++;
+        return;
+      }
+
+      // 检查是否为盲注动作，如果是则只更新UI不执行动作（与原版逻辑一致）
+      const isSbPost =
+        event.round === "preflop" &&
+        event.action === "BET" &&
+        event.playerId === this.game!.players[this.game!.sbIndex!].id &&
+        event.amount === this.replayData.settings?.sb;
+      const isBbPost =
+        event.round === "preflop" &&
+        event.action === "BET" &&
+        event.playerId === this.game!.players[this.game!.bbIndex!].id &&
+        event.amount === this.replayData.settings?.bb;
+
+      if (isSbPost || isBbPost) {
+        // 只更新UI显示，不执行游戏引擎动作（因为引擎已处理盲注）
+        this.logActionToHistory(event.playerId!, event.action, event.amount);
+        this.currentReplayStep++;
+        return;
+      }
+
+      // 处理不同类型的事件（与原版逻辑一致）
+      if (event.type === "dealCommunity" || !event.playerId) {
+        // 处理系统事件（没有playerId的事件）
+        switch (event.type) {
+          case "initialState":
+            // 创世状态已在 resetReplay 中处理完毕，此处无需任何操作
+            this.currentReplayStep++;
+            return;
+          case "dealCommunity":
+            // 处理发公共牌事件
+            if (event.cards && Array.isArray(event.cards)) {
+              this.game!.communityCards = event.cards;
+            }
+            if (event.round) {
+              this.game!.startNewRound(event.round); // 开始新一轮，重置行动顺序
+            }
+            this.log(
+              `[REPLAY] 发${event.round}公共牌: ${event.cards?.join(", ")}`,
+            );
+            break;
+          default:
+            this.log(`⚠️ [REPLAY] 未知系统事件类型: ${event.type}`);
+        }
+      } else {
+        // 处理玩家动作事件
+        const actionOrType = event.type || event.action;
+        const actor = event.playerId;
+
+        this.log(
+          `[REPLAY] ${actor} ${actionOrType}${event.amount ? " " + event.amount : ""}`,
+        );
+
+        try {
+          switch (event.action) {
+            case "FOLD":
+              this.game.executeAction(event.playerId, "FOLD");
+              this.logActionToHistory(event.playerId, "FOLD");
+              this.game.moveToNextPlayer();
+              break;
+            case "CHECK":
+              this.game.executeAction(event.playerId, "CHECK");
+              this.logActionToHistory(event.playerId, "CHECK");
+              this.game.moveToNextPlayer();
+              break;
+            case "CALL":
+              this.game.executeAction(event.playerId, "CALL", event.amount);
+              this.logActionToHistory(event.playerId, "CALL", event.amount);
+              this.game.moveToNextPlayer();
+              break;
+            case "BET":
+            case "RAISE":
+              this.game.executeAction(
+                event.playerId,
+                event.action,
+                event.amount,
+              );
+              this.logActionToHistory(
+                event.playerId,
+                event.action,
+                event.amount,
+              );
+              this.game.moveToNextPlayer();
+              break;
+            case "ALLIN":
+              this.game.executeAction(event.playerId, "ALLIN", event.amount);
+              this.logActionToHistory(event.playerId, "ALLIN", event.amount);
+              this.game.moveToNextPlayer();
+              break;
+            default:
+              this.log(`⚠️ [REPLAY] 未知动作类型: ${event.action}`);
+          }
+        } catch (error: any) {
+          this.log(`❌ [REPLAY] 回放动作失败: ${error.message}`);
+          if (this.replayInterval) {
+            clearInterval(this.replayInterval);
+            this.replayInterval = null;
+          }
+          return;
+        }
+      }
+
+      this.currentReplayStep++;
+      this.updateUIAfterReplayStep();
+    },
+
+    /**
+     * 执行回放的上一步
+     */
+    prevReplayStep() {
+      if (!this.isInReplayMode || !this.game) return;
+
+      // 暂停播放
+      if (this.replayInterval) {
+        clearInterval(this.replayInterval);
+        this.replayInterval = null;
+      }
+
+      if (this.currentReplayStep <= 0) {
+        this.log("[REPLAY] 已经是第一步");
+        return;
+      }
+
+      this.currentReplayStep--;
+
+      // 重新构建到当前步骤的游戏状态
+      this.rebuildReplayState();
+      this.log(`[REPLAY] 回退到步骤 ${this.currentReplayStep}`);
+    },
+
+    /**
+     * 重新构建回放状态
+     */
+    rebuildReplayState() {
+      if (!this.replayData.settings || !this.replayData.gameState) return;
+
+      // 重置游戏状态
+      this.game!.reset(
+        this.replayData.settings,
+        this.replayData.gameState.dealerIndex,
+      );
+
+      // 重新设置初始玩家状态
+      const initialStateEvent = this.replayData.actions.find(
+        (e) => e.type === "initialState",
+      );
+      if (initialStateEvent && initialStateEvent.players) {
+        this.game!.players = JSON.parse(
+          JSON.stringify(initialStateEvent.players),
+        );
+      }
+
+      // 重新开始翻前
+      this.game!.startNewRound("preflop");
+
+      // 重置行动记录
+      this.resetActionRecords();
+
+      // 重新执行到当前步骤之前的所有动作
+      const originalStep = this.currentReplayStep;
+      this.currentReplayStep = 0;
+
+      while (this.currentReplayStep < originalStep) {
+        const wasManual = true;
+        this.nextReplayStep(wasManual);
+        if (this.currentReplayStep >= this.replayData.actions.length) break;
+      }
+    },
+
+    /**
+     * 播放或暂停回放
+     */
+    playPauseReplay() {
+      if (!this.isInReplayMode) return;
+
+      if (this.replayInterval) {
+        // 正在播放 -> 暂停
+        clearInterval(this.replayInterval);
+        this.replayInterval = null;
+        this.log("[REPLAY] 暂停");
+      } else {
+        // 已暂停 -> 播放
+        if (this.currentReplayStep >= this.replayData.actions.length) {
+          this.resetReplay();
+        }
+        this.log("[REPLAY] 播放...");
+
+        // 立即执行一步，然后开始定时
+        this.nextReplayStep(false);
+        const settingStore = useSettingStore();
+        this.replayInterval = setInterval(
+          () => this.nextReplayStep(false),
+          settingStore.autoDelay,
+        );
+      }
+    },
+
+    /**
+     * 更新回放后的UI
+     */
+    updateUIAfterReplayStep() {
+      // 这个方法将由组件调用来更新UI
+      // 在Vue中，UI会自动响应状态变化
     },
 
     /**

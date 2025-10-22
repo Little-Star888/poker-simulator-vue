@@ -137,6 +137,7 @@
             type="checkbox"
             v-model="settingStore.usePresetCommunity"
             @change="onPresetChange"
+            :disabled="gameStore.isInReplayMode"
           />
           预设公共牌
         </label>
@@ -145,6 +146,7 @@
             type="checkbox"
             v-model="settingStore.usePresetHands"
             @change="onPresetChange"
+            :disabled="gameStore.isInReplayMode"
           />
           预设手牌
         </label>
@@ -409,15 +411,13 @@ const handleViewSnapshot = (snapshotId: number) => {
 // 处理开始回放
 const handleStartReplay = async (snapshotId: number) => {
   gameStore.log(`▶️ 准备回放快照 (ID: ${snapshotId})...`)
-  // TODO: 实现回放功能
-  gameStore.log(`⚠️ 回放功能开发中`)
-  console.log('Snapshot ID for replay:', snapshotId)
-  // try {
-  //   await gameStore.startReplay(snapshotId)
-  // } catch (error: any) {
-  //   gameStore.log(`❌ 回放失败: ${error.message}`)
-  //   console.error('回放失败:', error)
-  // }
+
+  try {
+    await gameStore.startReplay(snapshotId)
+  } catch (error: any) {
+    gameStore.log(`❌ 回放失败: ${error.message}`)
+    console.error('回放失败:', error)
+  }
 }
 
 // 刷新快照列表（供外部调用）

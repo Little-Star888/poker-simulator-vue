@@ -24,9 +24,9 @@ export const useSettingStore = defineStore("setting", {
     suggestOnTurn: false,
     suggestOnRiver: false,
 
-    // 牌局预设
-    usePresetHands: false,
-    usePresetCommunity: false,
+    // 牌局预设 - 默认勾选（与原版保持一致）
+    usePresetHands: true,
+    usePresetCommunity: true,
     presetCards: {
       players: {},
       flop: [null, null, null],
@@ -83,8 +83,8 @@ export const useSettingStore = defineStore("setting", {
       this.suggestOnFlop = true;
       this.suggestOnTurn = false;
       this.suggestOnRiver = false;
-      this.usePresetHands = false;
-      this.usePresetCommunity = false;
+      this.usePresetHands = true; // 默认勾选（与原版保持一致）
+      this.usePresetCommunity = true; // 默认勾选（与原版保持一致）
       this.presetCards = {
         players: {},
         flop: [null, null, null],

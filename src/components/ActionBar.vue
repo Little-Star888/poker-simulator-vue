@@ -1,6 +1,6 @@
 <template>
   <div class="action-bar">
-    <div id="game-controls" style="display: flex; gap: 10px;">
+    <div id="game-controls" v-show="!isInReplayMode" style="display: flex; gap: 10px;">
       <button
         id="start-btn"
         class="game-control-btn"
@@ -44,33 +44,14 @@
     </div>
 
     <!-- Replay Controls (shown only in replay mode) -->
-    <div v-if="isInReplayMode" id="replay-controls" style="display: flex; gap: 10px;">
-      <button
-        id="replay-reset-btn"
-        class="game-control-btn"
-        @click="handleReplayReset"
-        :disabled="isProcessing"
-      >
-        <i class="material-icons">replay</i>
-        <span>重置</span>
-      </button>
-
-      <button
-        id="replay-prev-btn"
-        class="game-control-btn"
-        @click="handleReplayPrev"
-        :disabled="isProcessing"
-      >
-        <i class="material-icons">skip_previous</i>
-      </button>
-
+    <div v-show="isInReplayMode" id="replay-controls" style="display: flex; gap: 10px;">
       <button
         id="replay-play-pause-btn"
         class="game-control-btn"
         @click="handleReplayPlayPause"
         :disabled="isProcessing"
       >
-        <i class="material-icons">{{ isReplayPlaying ? 'pause' : 'play_arrow' }}</i>
+        {{ isReplayPlaying ? '⏸️ 暂停' : '▶️ 播放' }}
       </button>
 
       <button
@@ -79,7 +60,25 @@
         @click="handleReplayNext"
         :disabled="isProcessing"
       >
-        <i class="material-icons">skip_next</i>
+        ⏭️ 下一步
+      </button>
+
+      <button
+        id="replay-prev-btn"
+        class="game-control-btn"
+        @click="handleReplayPrev"
+        :disabled="isProcessing"
+      >
+        ⏮️ 上一步
+      </button>
+
+      <button
+        id="replay-reset-btn"
+        class="game-control-btn"
+        @click="handleReplayReset"
+        :disabled="isProcessing"
+      >
+        🔄 重置
       </button>
 
       <button
@@ -88,8 +87,7 @@
         @click="handleReplayExit"
         :disabled="isProcessing"
       >
-        <i class="material-icons">exit_to_app</i>
-        <span>退出回放</span>
+        ⏹️ 退出
       </button>
     </div>
   </div>
@@ -108,12 +106,14 @@ const gameStore = useGameStore()
 
 // Local state
 const isProcessing = ref(false)
-const isReplayPlaying = ref(false)
 
 // Computed
 const isGameRunning = computed(() => gameStore.isGameRunning)
 const isGamePaused = computed(() => gameStore.isGamePaused)
 const isInReplayMode = computed(() => gameStore.isInReplayMode)
+
+// 回放播放状态：基于replayInterval判断，与原版逻辑一致
+const isReplayPlaying = computed(() => gameStore.replayInterval !== null)
 
 // Methods
 const handleStartStop = async () => {
@@ -159,27 +159,55 @@ const handleSaveSnapshot = () => {
 
 const handleReplayReset = () => {
   if (isProcessing.value) return
-  // TODO: Implement replay reset
-  gameStore.log('🔄 重置回放（开发中）')
+  isProcessing.value = true
+
+  try {
+    gameStore.resetReplay()
+    gameStore.log('🔄 回放已重置')
+  } finally {
+    setTimeout(() => {
+      isProcessing.value = false
+    }, 300)
+  }
 }
 
 const handleReplayPrev = () => {
   if (isProcessing.value) return
-  // TODO: Implement replay previous
-  gameStore.log('⏮️ 上一步（开发中）')
+  isProcessing.value = true
+
+  try {
+    gameStore.prevReplayStep()
+  } finally {
+    setTimeout(() => {
+      isProcessing.value = false
+    }, 300)
+  }
 }
 
 const handleReplayPlayPause = () => {
   if (isProcessing.value) return
-  isReplayPlaying.value = !isReplayPlaying.value
-  // TODO: Implement replay play/pause
-  gameStore.log(`${isReplayPlaying.value ? '▶️' : '⏸️'} 回放${isReplayPlaying.value ? '播放' : '暂停'}（开发中）`)
+  isProcessing.value = true
+
+  try {
+    gameStore.playPauseReplay()
+  } finally {
+    setTimeout(() => {
+      isProcessing.value = false
+    }, 300)
+  }
 }
 
 const handleReplayNext = () => {
   if (isProcessing.value) return
-  // TODO: Implement replay next
-  gameStore.log('⏭️ 下一步（开发中）')
+  isProcessing.value = true
+
+  try {
+    gameStore.nextReplayStep(true) // 手动点击
+  } finally {
+    setTimeout(() => {
+      isProcessing.value = false
+    }, 300)
+  }
 }
 
 const handleReplayExit = () => {
@@ -254,6 +282,83 @@ const handleReplayExit = () => {
 
 .danger-btn:hover:not(:disabled) {
   background-color: #c82333;
+}
+
+/* 回放控制面板按钮颜色 - 与原版完全一致 */
+#replay-play-pause-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+#replay-play-pause-btn:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+#replay-play-pause-btn:disabled {
+  background-color: #6c757d;
+  color: white;
+}
+
+#replay-play-pause-btn:disabled:hover {
+  background-color: #6c757d;
+}
+
+#replay-next-btn,
+#replay-prev-btn {
+  background-color: #17a2b8;
+  color: white;
+}
+
+#replay-next-btn:hover:not(:disabled),
+#replay-prev-btn:hover:not(:disabled) {
+  background-color: #138496;
+}
+
+#replay-next-btn:disabled,
+#replay-prev-btn:disabled {
+  background-color: #6c757d;
+  color: white;
+}
+
+#replay-next-btn:disabled:hover,
+#replay-prev-btn:disabled:hover {
+  background-color: #6c757d;
+}
+
+#replay-reset-btn {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+#replay-reset-btn:hover:not(:disabled) {
+  background-color: #e0a800;
+}
+
+#replay-reset-btn:disabled {
+  background-color: #6c757d;
+  color: white;
+}
+
+#replay-reset-btn:disabled:hover {
+  background-color: #6c757d;
+}
+
+#replay-exit-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+#replay-exit-btn:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+#replay-exit-btn:disabled {
+  background-color: #6c757d;
+  color: white;
+}
+
+#replay-exit-btn:disabled:hover {
+  background-color: #6c757d;
 }
 
 /* Hide config toggle on desktop */
