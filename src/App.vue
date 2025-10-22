@@ -670,7 +670,7 @@ html, body {
 }
 
 .form-row input:not(.player-count-input),
-.form-row select {
+.form-row select:not(.mode-select):not(.pot-type-select) {
   padding: 6px 10px;
   font-size: 14px;
   border: 1px solid #ccc;
@@ -686,6 +686,27 @@ html, body {
   border-radius: 4px;
   width: 50px;
   min-width: 50px;
+  transition: border-color 0.2s;
+}
+
+.form-row input.blind-input,
+.form-row input.delay-input {
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 50px;
+  min-width: 45px;
+  transition: border-color 0.2s;
+}
+
+.form-row select.mode-select {
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 50px;
+  min-width: 45px;
   transition: border-color 0.2s;
 }
 

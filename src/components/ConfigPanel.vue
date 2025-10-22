@@ -6,7 +6,7 @@
 
       <div class="form-row">
         <label>游戏模式:</label>
-        <select v-model="settingStore.mode">
+        <select v-model="settingStore.mode" class="mode-select" style="width:72px;">
           <option value="auto">自动</option>
           <option value="manual">手动</option>
         </select>
@@ -19,15 +19,16 @@
           v-model.number="settingStore.sb"
           @input="onSBChange"
           min="1"
-          style="width:80px;"
+          class="blind-input"
+          style="width:50px;"
         /> /
         <input
           type="number"
           :value="settingStore.bb"
           readonly
-          class="readonly-input"
+          class="readonly-input blind-input"
           min="1"
-          style="width:80px;"
+          style="width:50px;"
         />
       </div>
 
@@ -37,7 +38,8 @@
           type="number"
           v-model.number="settingStore.autoDelay"
           min="100"
-          style="width:100px;"
+          class="delay-input"
+          style="width:50px;"
         />
       </div>
 
