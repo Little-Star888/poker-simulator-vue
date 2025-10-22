@@ -615,6 +615,59 @@ html, body {
   margin-right: 0; /* 覆盖默认的margin-right */
 }
 
+/* GTO建议阶段容器 */
+#suggestion-phases {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#suggestion-phases label {
+  margin-right: 0 !important; /* 强制覆盖默认的margin-right */
+  white-space: nowrap; /* 防止文字换行 */
+}
+
+/* 确保GTO建议阶段的checkbox在一行显示 */
+#suggestion-phases label:has(input[type="checkbox"]) {
+  margin-right: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* 玩家数量和底池类型的特殊样式 */
+.player-count-input {
+  width: 50px;
+}
+
+.pot-type-label {
+  margin-left: 12px; /* 减小左边距 */
+  margin-right: 8px;  /* 减小右边距 */
+}
+
+.pot-type-select {
+  width: 130px; /* 减小宽度以节省空间 */
+}
+
+/* 当屏幕宽度有限时，确保两个选项能在一行显示 */
+@media (max-width: 480px) {
+  .player-count-input {
+    width: 45px;
+  }
+
+  .pot-type-label {
+    margin-left: 10px;
+    margin-right: 5px;
+    font-size: 13px;
+  }
+
+  .pot-type-select {
+    width: 95px; /* 移动端进一步减小宽度 */
+    font-size: 13px;
+  }
+}
+
 .form-row input,
 .form-row select {
   padding: 6px 10px;

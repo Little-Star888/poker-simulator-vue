@@ -44,16 +44,16 @@
       <div class="form-row">
         <label>GTO建议阶段:</label>
         <div id="suggestion-phases">
-          <label style="margin-right: 10px; width: auto;">
+          <label>
             <input type="checkbox" v-model="settingStore.suggestOnPreflop"> Preflop
           </label>
-          <label style="margin-right: 10px; width: auto;">
+          <label>
             <input type="checkbox" v-model="settingStore.suggestOnFlop"> Flop
           </label>
-          <label style="margin-right: 10px; width: auto;">
+          <label>
             <input type="checkbox" v-model="settingStore.suggestOnTurn"> Turn
           </label>
-          <label style="margin-right: 10px; width: auto;">
+          <label>
             <input type="checkbox" v-model="settingStore.suggestOnRiver"> River
           </label>
         </div>
@@ -84,13 +84,13 @@
           @change="onPlayerCountChange"
           min="2"
           max="8"
-          style="width: 50px;"
+          class="player-count-input"
         />
-        <label style="width: auto; margin-left: 15px; margin-right: 10px;">底池类型:</label>
+        <label class="pot-type-label">底池类型:</label>
         <select
           v-model="settingStore.potType"
           :disabled="settingStore.mode === 'manual'"
-          style="width: 130px;"
+          class="pot-type-select"
         >
           <option value="unrestricted">无限制</option>
           <option value="single_raised">单一加注底池</option>
