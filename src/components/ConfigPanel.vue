@@ -612,7 +612,7 @@ select:disabled {
   .preset-player-hands-grid .preset-card-slot {
     width: 28px;
     height: 40px;
-    flex: 1;
+    /* flex: 1; REMOVED */
   }
 }
 </style>
