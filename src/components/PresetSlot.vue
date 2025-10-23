@@ -204,7 +204,7 @@ onUnmounted(() => {
 .preset-card-slot.active-selection {
   border-color: #28a745;
   border-style: solid;
-  border-width: 3px;
+  border-width: 2px; /* Changed from 3px */
   box-shadow: 0 0 12px rgba(40, 167, 69, 0.5);
   animation: pulse 1s infinite;
 }
