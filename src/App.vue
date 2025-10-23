@@ -444,13 +444,13 @@ onMounted(() => {
   }
 
   .table-area {
-    width: 66.67%; /* 50% of viewport = 50/75 = 66.67% of main-content */
+    width: 53.33%; /* 40% of viewport = 40/75 = 53.33% of main-content */
     height: 100%;
     border-right: 1px solid var(--border-color);
   }
 
   .info-panel-area {
-    width: 33.33%; /* 25% of viewport = 25/75 = 33.33% of main-content */
+    width: 46.67%; /* 35% of viewport = 35/75 = 46.67% of main-content */
     height: 100%;
     overflow-y: auto;
     padding: 20px;
