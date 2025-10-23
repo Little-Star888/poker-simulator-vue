@@ -211,7 +211,8 @@ onUnmounted(() => {
 
 .preset-card-slot.has-card {
   border-style: solid;
-  border-color: #007bff;
+  border-color: #FFC107; /* Gold */
+  box-shadow: 0 0 8px rgba(255, 193, 7, 0.4); /* Gold shadow */
 }
 
 .preset-card-slot.has-card:hover {
