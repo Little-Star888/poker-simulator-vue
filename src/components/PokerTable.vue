@@ -127,19 +127,34 @@ const getPlayerBet = (index: number) => {
 
 // 获取手牌样式（用于飞牌动画目标）
 const getHoleCardStyle = (playerIndex: number, cardIndex: number) => {
-  const playerId = `P${playerIndex}`
-  const player = gameState.value?.players.find(p => p.id === playerId)
-
-  // 只显示 P1 的手牌，或者在摊牌时显示所有牌
-  if (playerIndex === 1 || !gameStore.isGameRunning) {
-    const cards = player?.holeCards || []
-    if (cards[cardIndex]) {
-      return { backgroundImage: `url(${getCardImage(cards[cardIndex])})` }
-    }
+  // If no game state, show nothing
+  if (!gameState.value) {
+    return { backgroundImage: 'none' }
   }
 
-  // 返回空样式，但元素仍然存在（用于飞牌动画）
-  return {}
+  const playerId = `P${playerIndex}`
+  const player = gameState.value.players.find(p => p.id === playerId)
+
+  // If no player for this slot, show nothing
+  if (!player) {
+      return { backgroundImage: 'none' };
+  }
+
+  const cards = player.holeCards || []
+  const card = cards[cardIndex];
+
+  // If player has folded, show nothing in their slot
+  if (player.isFolded) {
+      return { backgroundImage: 'none' };
+  }
+
+  // If the card exists, show it
+  if (card) {
+    return { backgroundImage: `url(${getCardImage(card)})` }
+  }
+
+  // Otherwise, show nothing (e.g., pre-deal)
+  return { backgroundImage: 'none' }
 }
 
 // 获取卡牌图片
@@ -302,7 +317,6 @@ onMounted(() => {
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  background-image: url('/cards/back.png');
 }
 
 /* --- Community Cards --- */

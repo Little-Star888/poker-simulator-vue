@@ -260,6 +260,27 @@ export const useGameStore = defineStore("game", {
 
       const settingStore = useSettingStore();
 
+      // Validation for presets
+      if (settingStore.usePresetCommunity) {
+          const flop = settingStore.presetCards.flop;
+          if (!flop[0] || !flop[1] || !flop[2]) {
+              this.log("❌ 校验失败：已勾选“预设公共牌”，但未选择完整的3张翻牌。");
+              return; // Stop the game from starting
+          }
+      }
+
+      if (settingStore.usePresetHands) {
+          const players = settingStore.presetCards.players;
+          for (let i = 1; i <= settingStore.playerCount; i++) {
+              const playerId = `P${i}`;
+              const hand = players[playerId];
+              if (!hand || !hand[0] || !hand[1]) {
+                  this.log(`❌ 校验失败：已勾选“预设手牌”，但玩家 ${playerId} 的手牌未完整选择。`);
+                  return; // Stop the game from starting
+              }
+          }
+      }
+
       try {
         this.log("🎮 开始新游戏...");
 
@@ -325,11 +346,15 @@ export const useGameStore = defineStore("game", {
      * 停止游戏
      */
     stopGame() {
-      this.log("⏹️ 游戏已停止");
+      this.log("⏹️ 游戏已停止，清空牌桌。");
       this.isGameRunning = false;
       this.isWaitingForManualInput = false;
       this.isGamePaused = false;
       this.currentSuggestionsCache = {};
+      // Reset the game object to clear the table display
+      this.game = new PokerGame();
+      this.resetActionRecords();
+      this.handActionHistory = [];
     },
 
     /**
