@@ -397,9 +397,7 @@ defineExpose({
 
 <style scoped>
 .snapshot-list-wrapper {
-  padding: 15px;
-  background: #fff;
-  border-radius: 8px;
+  text-align: left;
 }
 
 .snapshot-list-wrapper h3 {
