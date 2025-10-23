@@ -108,6 +108,7 @@
     </div>
 
     <!-- 删除确认弹窗 -->
+    <Teleport to="body">
     <div
       v-if="deleteConfirmVisible"
       ref="deletePopoverRef"
@@ -130,6 +131,7 @@
         </button>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
