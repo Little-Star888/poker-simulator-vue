@@ -718,18 +718,18 @@ defineExpose({
 /* 响应式调整 */
 @media (max-width: 768px) {
   .snapshot-item {
-    flex-direction: column;
-    align-items: flex-start;
+    /* flex-direction: column; REMOVED */
+    align-items: center; /* Changed from flex-start to center to match desktop */
     gap: 10px;
   }
 
   .snapshot-actions {
-    width: 100%;
-    flex-direction: column;
+    width: auto; /* Changed from 100% */
+    /* flex-direction: column; REMOVED */
   }
 
   .snapshot-actions button {
-    width: 100%;
+    width: auto; /* Changed from 100% */
   }
 
   .snapshot-pagination-controls {
