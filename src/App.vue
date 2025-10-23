@@ -762,12 +762,16 @@ html, body {
 }
 
 .pot-type-label {
-  margin-left: 12px; /* 减小左边距 */
   margin-right: 8px;  /* 减小右边距 */
 }
 
 .pot-type-select {
   width: 130px; /* 减小宽度以节省空间 */
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: border-color 0.2s;
 }
 
 /* 当屏幕宽度有限时，确保两个选项能在一行显示 */
@@ -777,7 +781,6 @@ html, body {
   }
 
   .pot-type-label {
-    margin-left: 10px;
     margin-right: 5px;
     font-size: 13px;
   }

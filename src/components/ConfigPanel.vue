@@ -33,6 +33,32 @@
       </div>
 
       <div class="form-row">
+        <label>底池类型:</label>
+        <select
+          v-model="settingStore.potType"
+          :disabled="settingStore.mode === 'manual'"
+          class="pot-type-select"
+        >
+          <option value="unrestricted">无限制</option>
+          <option value="single_raised">单一加注底池</option>
+          <option value="3bet">3-Bet 底池</option>
+          <option value="4bet">4-Bet及以上</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label>玩家数量:</label>
+        <input
+          type="number"
+          v-model.number="settingStore.playerCount"
+          @change="onPlayerCountChange"
+          min="2"
+          max="8"
+          class="player-count-input"
+        />
+      </div>
+
+      <div class="form-row">
         <label>玩家思考时间 (ms):</label>
         <input
           type="number"
@@ -40,6 +66,34 @@
           min="100"
           class="delay-input"
           style="width:50px;"
+        />
+      </div>
+
+      <div class="form-row">
+        <label>P1开局位置:</label>
+        <select v-model="settingStore.p1Role" class="role-select" style="width:72px;">
+          <option value="random">随机</option>
+          <option v-for="role in availableRoles" :key="role" :value="role">
+            {{ role }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label>初始筹码范围:</label>
+        <input
+          type="number"
+          v-model.number="settingStore.minStack"
+          min="1"
+          class="stack-input"
+          style="width:65px;"
+        /> -
+        <input
+          type="number"
+          v-model.number="settingStore.maxStack"
+          min="1"
+          class="stack-input"
+          style="width:65px;"
         />
       </div>
 
@@ -76,57 +130,6 @@
             P{{ i }}
           </label>
         </div>
-      </div>
-
-      <div class="form-row">
-        <label>玩家数量:</label>
-        <input
-          type="number"
-          v-model.number="settingStore.playerCount"
-          @change="onPlayerCountChange"
-          min="2"
-          max="8"
-          class="player-count-input"
-        />
-        <label class="pot-type-label">底池类型:</label>
-        <select
-          v-model="settingStore.potType"
-          :disabled="settingStore.mode === 'manual'"
-          class="pot-type-select"
-        >
-          <option value="unrestricted">无限制</option>
-          <option value="single_raised">单一加注底池</option>
-          <option value="3bet">3-Bet 底池</option>
-          <option value="4bet">4-Bet及以上</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <label>P1开局位置:</label>
-        <select v-model="settingStore.p1Role" class="role-select" style="width:72px;">
-          <option value="random">随机</option>
-          <option v-for="role in availableRoles" :key="role" :value="role">
-            {{ role }}
-          </option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <label>初始筹码范围:</label>
-        <input
-          type="number"
-          v-model.number="settingStore.minStack"
-          min="1"
-          class="stack-input"
-          style="width:65px;"
-        /> -
-        <input
-          type="number"
-          v-model.number="settingStore.maxStack"
-          min="1"
-          class="stack-input"
-          style="width:65px;"
-        />
       </div>
     </div>
 
