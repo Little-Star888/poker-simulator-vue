@@ -625,13 +625,11 @@ onMounted(() => {
     /* GTO筛选在小屏幕上的布局 */
     .gto-filter-players {
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 5px;
     }
 
     /* GTO建议阶段容器在小屏幕上的布局 */
     #suggestion-phases {
-      flex-direction: column;
-      align-items: flex-start;
       gap: 5px;
     }
 
@@ -703,48 +701,58 @@ html, body {
 
 /* 特殊处理包含checkbox的label */
 .form-row label:has(input[type="checkbox"]) {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-right: 8px;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  width: auto !important;
+  flex-basis: auto !important;
+  min-width: 0 !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
 }
 
 .form-row label:has(input[type="checkbox"]) input[type="checkbox"] {
-  min-width: auto;
-  margin: 0;
+  min-width: auto !important;
+  margin-right: 4px !important;
+  padding: 0 !important;
 }
 
 /* GTO筛选玩家选项容器 */
 .gto-filter-players {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0px;
+  gap: 0;
 }
 
 .gto-filter-players label {
-  margin-right: 0; /* 覆盖默认的margin-right */
+  margin: 0;
+  padding: 0;
 }
 
 /* GTO建议阶段容器 */
 #suggestion-phases {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 0;
+  flex-wrap: nowrap;
 }
 
 #suggestion-phases label {
-  margin-right: 0 !important; /* 强制覆盖默认的margin-right */
+  margin: 0;
+  padding: 0;
   white-space: nowrap; /* 防止文字换行 */
 }
 
 /* 确保GTO建议阶段的checkbox在一行显示 */
 #suggestion-phases label:has(input[type="checkbox"]) {
-  margin-right: 0 !important;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* 玩家数量和底池类型的特殊样式 */
