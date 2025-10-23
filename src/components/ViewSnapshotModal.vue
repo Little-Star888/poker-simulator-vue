@@ -84,7 +84,7 @@
           :disabled="isSaving"
           @click="handleSaveRemarks"
         >
-          <span v-if="!isSaving">💾 保存批注</span>
+          <span v-if="saveState === 'idle'">💾 保存批注</span>
           <span v-else-if="saveState === 'saving'">
             保存中<span class="saving-dots"></span>
           </span>
