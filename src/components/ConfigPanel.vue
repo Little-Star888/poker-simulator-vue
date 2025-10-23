@@ -610,8 +610,8 @@ select:disabled {
 
   /* 优化PresetSlot在移动端的显示 */
   .preset-player-hands-grid .preset-card-slot {
-    width: 45px;
-    height: 55px;
+    width: 30px;
+    height: 40px;
     flex: 1;
   }
 }

@@ -179,7 +179,7 @@ onUnmounted(() => {
 
 <style scoped>
 .preset-card-slot {
-  width: 40px;
+  width: 34px;
   height: 50px;
   border: 2px dashed #ccc;
   border-radius: 4px;
@@ -258,8 +258,8 @@ onUnmounted(() => {
 /* 响应式调整 */
 @media (max-width: 768px) {
   .preset-card-slot {
-    width: 35px;
-    height: 45px;
+    width: 27px;
+    height: 40px;
   }
 
   .slot-placeholder {
