@@ -63,7 +63,7 @@
     <div
       v-if="toastMessage"
       class="toast-notification"
-      :class="{ show: toastVisible, error: toastIsError }"
+      :class="[toastType, { show: toastVisible }]"
     >
       {{ toastMessage }}
     </div>
@@ -102,7 +102,7 @@ const showScreenshotSelector = ref(false)
 const showEndOfHandModal = ref(false)
 const toastMessage = ref('')
 const toastVisible = ref(false)
-const toastIsError = ref(false)
+const toastType = ref('success') // 'success', 'error', 'info'
 const isLoading = ref(false)
 
 // Snapshot data
@@ -239,9 +239,9 @@ const handleEndOfHandCancel = () => {
 }
 
 // Toast notification
-const showToast = (message: string, duration: number = 2000, isError: boolean = false) => {
+const showToast = (message: string, duration: number = 2000, type: string = 'success') => {
   toastMessage.value = message
-  toastIsError.value = isError
+  toastType.value = type
   toastVisible.value = true
 
   setTimeout(() => {
@@ -459,29 +459,41 @@ onMounted(() => {
 
 /* --- Toast Notification --- */
 .toast-notification {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #28a745;
-  color: white;
-  padding: 15px 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  z-index: 10000;
-  opacity: 0;
-  transform: translateY(-20px);
-  transition: opacity 0.3s, transform 0.3s;
-  max-width: 400px;
-  word-wrap: break-word;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background-color: rgba(0, 123, 255, 0.95); /* Default success color */
+    color: white;
+    padding: 16px 32px;
+    border-radius: 8px;
+    z-index: 9999;
+    font-size: 1.1em;
+    font-weight: 600;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+    pointer-events: none;
 }
 
 .toast-notification.show {
-  opacity: 1;
-  transform: translateY(0);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.toast-notification.success {
+    background-color: rgba(0, 123, 255, 0.95); /* Success blue */
 }
 
 .toast-notification.error {
-  background: #dc3545;
+    background-color: rgba(220, 53, 69, 0.95); /* Error red */
+}
+
+.toast-notification.info {
+    background-color: rgba(255, 193, 7, 0.95); /* Info yellow */
+    color: #212529;
 }
 
 /* --- Loader Overlay --- */

@@ -80,7 +80,7 @@
         <button
           id="save-snapshot-remarks-btn"
           class="game-control-btn"
-          :class="{ saving: isSaving }"
+          :class="{ saving: isSaving, 'no-change': saveState === 'no-change', success: saveState === 'success' }"
           :disabled="isSaving"
           @click="handleSaveRemarks"
         >
@@ -235,13 +235,14 @@ const handleSaveRemarks = async () => {
   // 检查是否有变化
   const currentSuggestions = JSON.stringify(suggestions.value)
   if (currentSuggestions === originalSuggestions.value) {
-    gameStore.log('ℹ️ 批注没有变化。')
-    saveState.value = 'no-change'
+    gameStore.log('ℹ️ 批注没有变化。');
+    (window as any).showToast('批注没有变化', 2000, 'info');
+    saveState.value = 'no-change';
 
     setTimeout(() => {
-      saveState.value = 'idle'
-    }, 1500)
-    return
+      saveState.value = 'idle';
+    }, 1500);
+    return;
   }
 
   isSaving.value = true
@@ -259,12 +260,13 @@ const handleSaveRemarks = async () => {
     // 更新原始数据
     originalSuggestions.value = JSON.stringify(suggestions.value)
 
-    gameStore.log(`✅ 快照 (ID: ${props.snapshotId}) 的批注已保存。`)
-    saveState.value = 'success'
+    gameStore.log(`✅ 快照 (ID: ${props.snapshotId}) 的批注已保存。`);
+    (window as any).showToast('批注保存成功', 2000, 'success');
+    saveState.value = 'success';
 
     setTimeout(() => {
-      saveState.value = 'idle'
-    }, 2000)
+      saveState.value = 'idle';
+    }, 2000);
 
   } catch (error: any) {
     gameStore.log(`❌ 保存批注失败: ${error.message}`)
@@ -525,14 +527,38 @@ watch(
   background-color: #0069d9;
 }
 
+/* 保存中状态的按钮样式 */
 #save-snapshot-remarks-btn.saving {
-  background-color: #6c757d !important;
-  cursor: not-allowed;
+    background-color: #6c757d !important;
+    cursor: not-allowed;
+    transform: scale(0.98);
+    animation: saving-pulse 2s infinite;
 }
 
 #save-snapshot-remarks-btn:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+/* 保存进度条效果 */
+#save-snapshot-remarks-btn::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: left 1.5s ease;
+}
+
+#save-snapshot-remarks-btn.saving::after {
+    left: 100%;
 }
 
 .saving-dots {
@@ -556,6 +582,29 @@ watch(
   0%, 20% { content: '.'; }
   40% { content: '..'; }
   60%, 100% { content: '...'; }
+}
+
+/* 按钮脉冲动画 */
+@keyframes saving-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+    }
+}
+
+
+#save-snapshot-remarks-btn.success {
+    background-color: #28a745 !important; /* Success green */
+}
+
+#save-snapshot-remarks-btn.no-change {
+    background-color: #ffc107 !important; /* Info yellow */
+    color: #212529;
 }
 
 /* 图片灯箱 */
