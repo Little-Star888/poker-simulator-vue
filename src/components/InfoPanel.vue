@@ -138,6 +138,12 @@ const getPlayerRole = (playerId: string) => {
   return player?.role || ''
 }
 
+interface SuggestionDisplayItem {
+  playerId: string;
+  data: any;
+  timestamp: number;
+}
+
 const currentSuggestions = computed(() => {
   console.log('[InfoPanel] currentSuggestionsCache:', gameStore.currentSuggestionsCache)
   console.log('[InfoPanel] gtoSuggestionFilter:', Array.from(gameStore.gtoSuggestionFilter))
@@ -177,7 +183,7 @@ const currentSuggestions = computed(() => {
       const phaseMap = phaseSuggestions.get(phase)
       const phaseData = {
         phase: phase.toUpperCase(),
-        suggestions: []
+        suggestions: [] as SuggestionDisplayItem[],
       }
 
       for (const [playerId, suggestionData] of phaseMap) {
@@ -203,7 +209,7 @@ const currentSuggestions = computed(() => {
     if (!phaseOrder.includes(phase)) {
       const phaseData = {
         phase: phase.toUpperCase(),
-        suggestions: []
+        suggestions: [] as SuggestionDisplayItem[],
       }
 
       for (const [playerId, suggestionData] of phaseMap) {
@@ -280,18 +286,6 @@ const getAction = (playerId: string, round: 'preflop' | 'flop' | 'turn' | 'river
     return '-'
   }
   return actions[index]
-}
-
-// 根据玩家ID获取行动记录（保留兼容性）
-const getActionsByPlayerId = (playerId: string, round: 'preflop' | 'flop' | 'turn' | 'river') => {
-  const actions = gameStore.actionRecords[playerId]?.[round]
-  return actions && actions.length > 0 ? actions.join(', ') : '-'
-}
-
-// 获取玩家的行动记录（保留兼容性）
-const getActions = (playerIndex: number, round: 'preflop' | 'flop' | 'turn' | 'river') => {
-  const playerId = `P${playerIndex}`
-  return getActionsByPlayerId(playerId, round)
 }
 
 // 自动滚动控制台到底部

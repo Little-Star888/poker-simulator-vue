@@ -506,7 +506,7 @@ export const useGameStore = defineStore("game", {
             playerId: currentPlayerId,
             suggestion: suggestion,
             timestamp: Date.now(),
-            phase: this.game.currentRound, // 添加当前阶段信息
+            phase: this.game.currentRound || undefined, // 添加当前阶段信息
           });
           this.log(`💡 已获取 ${currentPlayerId} 的 GTO 建议`);
         } catch (error: any) {
@@ -552,8 +552,7 @@ export const useGameStore = defineStore("game", {
           this.replayData.actions.push({
             playerId: currentPlayerId,
             action: decision.action,
-            amount: decision.amount,
-            round: this.game.currentRound,
+            round: this.game.currentRound!,
             timestamp: Date.now(),
           });
         }
@@ -593,7 +592,7 @@ export const useGameStore = defineStore("game", {
             playerId,
             action,
             amount,
-            round: this.game.currentRound,
+            round: this.game.currentRound!,
             timestamp: Date.now(),
           });
         }
@@ -647,6 +646,7 @@ export const useGameStore = defineStore("game", {
       if (this.replayData && this.replayData.actions) {
         this.replayData.actions.push({
           type: "dealCommunity",
+          action: "dealCommunity",
           cards: [...this.game.communityCards],
           round: nextRound,
           timestamp: Date.now(),
@@ -988,10 +988,6 @@ export const useGameStore = defineStore("game", {
       if (event.type === "dealCommunity" || !event.playerId) {
         // 处理系统事件（没有playerId的事件）
         switch (event.type) {
-          case "initialState":
-            // 创世状态已在 resetReplay 中处理完毕，此处无需任何操作
-            this.currentReplayStep++;
-            return;
           case "dealCommunity":
             // 处理发公共牌事件
             if (event.cards && Array.isArray(event.cards)) {

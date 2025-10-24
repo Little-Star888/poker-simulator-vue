@@ -133,8 +133,10 @@ export interface SnapshotSummary {
 export interface SnapshotDetail extends SnapshotSummary {
   gameState: GameState;
   imageData?: string;
-  gtoSuggestions?: Record<string, GTOSuggestion>;
+  gtoSuggestions?: any;
   remarks?: Record<string, string>;
+  settings?: any;
+  actionHistory?: any;
 }
 
 export interface SnapshotPage {

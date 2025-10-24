@@ -25,10 +25,6 @@
 </template>
 
 <script setup lang="ts">
-import { useGameStore } from '@/stores/gameStore'
-
-const gameStore = useGameStore()
-
 const confirmSave = () => {
   // 触发确认保存事件，让父组件处理
   const event = new CustomEvent('endOfHandConfirm')
