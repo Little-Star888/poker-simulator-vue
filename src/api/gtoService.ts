@@ -8,6 +8,7 @@ import {
   calculateHasPosition,
   calculateFlopActionSituation,
 } from "@/core/GTOLogic";
+import { getApiUrl } from "@/config/api";
 
 /**
  * 调用后端GTO建议API的服务模块
@@ -158,7 +159,9 @@ export async function getSuggestion(
     `Requesting suggestion for ${currentPlayerId}: /poker/suggestion?${params.toString()}`,
   );
 
-  const response = await fetch(`/poker/suggestion?${params.toString()}`);
+  const response = await fetch(
+    getApiUrl("/poker/suggestion") + `?${params.toString()}`,
+  );
 
   if (!response.ok) {
     const errorText = await response.text();

@@ -1,12 +1,11 @@
 import type { SnapshotPage, SnapshotDetail } from "@/types";
+import { getApiUrl } from "@/config/api";
 
 /**
  * snapshot_api_service.ts
  *
  * 负责与后端 /api/snapshots/* 接口进行所有通信的服务模块
  */
-
-const API_BASE_URL = "/poker/snapshots";
 
 /**
  * 从后端获取快照的摘要列表（支持分页）
@@ -18,7 +17,9 @@ export async function getSnapshots(
   page: number = 0,
   size: number = 5,
 ): Promise<SnapshotPage> {
-  const response = await fetch(`${API_BASE_URL}?page=${page}&size=${size}`);
+  const response = await fetch(
+    `${getApiUrl("/poker/snapshots")}?page=${page}&size=${size}`,
+  );
   if (!response.ok) {
     throw new Error(`获取快照列表失败: ${response.statusText}`);
   }
@@ -31,7 +32,7 @@ export async function getSnapshots(
  * @returns 完整的快照对象
  */
 export async function getSnapshotById(id: number): Promise<SnapshotDetail> {
-  const response = await fetch(`${API_BASE_URL}/${id}`);
+  const response = await fetch(`${getApiUrl("/poker/snapshots")}/${id}`);
   if (!response.ok) {
     throw new Error(`获取快照详情失败: ${response.statusText}`);
   }
@@ -46,7 +47,7 @@ export async function getSnapshotById(id: number): Promise<SnapshotDetail> {
 export async function createSnapshot(
   snapshotData: any,
 ): Promise<SnapshotDetail> {
-  const response = await fetch(API_BASE_URL, {
+  const response = await fetch(getApiUrl("/poker/snapshots"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -69,7 +70,7 @@ export async function updateSnapshot(
   id: number,
   updateData: any,
 ): Promise<SnapshotDetail> {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
+  const response = await fetch(`${getApiUrl("/poker/snapshots")}/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -87,7 +88,7 @@ export async function updateSnapshot(
  * @param id 快照ID
  */
 export async function deleteSnapshotById(id: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
+  const response = await fetch(`${getApiUrl("/poker/snapshots")}/${id}`, {
     method: "DELETE",
   });
   if (!response.ok) {
