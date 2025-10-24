@@ -565,8 +565,8 @@ onMounted(() => {
 /* --- Mobile Responsive --- */
 @media (max-width: 768px) {
   .table-area {
-    height: 60vh;
-    min-height: 400px;
+    height: 80vh; /* Further increased for a longer table on mobile */
+    min-height: 600px;
   }
 
   .info-panel-area {

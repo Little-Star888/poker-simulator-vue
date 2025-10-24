@@ -128,10 +128,12 @@ const updateLayout = () => {
   const centerX = tableRect.width / 2;
   const centerY = tableRect.height / 2;
   
-  // Margin to keep players and bubbles inside.
-  // Player height is 100px (radius 50). Bubble is 30px above. Total offset ~80px.
-  const marginX = 80;
-  const marginY = 80;
+  const isMobile = window.innerWidth <= 768;
+  // On mobile, player is 80px wide/high. Radius 40. Bubble needs ~30px.
+  // Vertical margin should be at least 40 + 30 = 70px.
+  // Horizontal margin should be at least 40px.
+  const marginX = isMobile ? 50 : 80;
+  const marginY = isMobile ? 75 : 80;
   const radiusX = tableRect.width / 2 - marginX;
   const radiusY = tableRect.height / 2 - marginY;
 
