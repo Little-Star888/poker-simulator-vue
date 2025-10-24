@@ -202,22 +202,22 @@ onUnmounted(() => {
 }
 
 .preset-card-slot.active-selection {
-  border-color: #28a745;
+  border-color: #dc3545; /* Red for active selection */
   border-style: solid;
-  border-width: 2px; /* Changed from 3px */
-  box-shadow: 0 0 12px rgba(40, 167, 69, 0.5);
+  border-width: 2px;
+  box-shadow: 0 0 12px rgba(220, 53, 69, 0.5); /* Red shadow */
   animation: pulse 1s infinite;
 }
 
 .preset-card-slot.has-card {
   border-style: solid;
-  border-color: #FFC107; /* Gold */
-  box-shadow: 0 0 8px rgba(255, 193, 7, 0.4); /* Gold shadow */
+  border-color: #28a745; /* Green for assigned card */
+  box-shadow: 0 0 8px rgba(40, 167, 69, 0.4); /* Green shadow */
 }
 
 .preset-card-slot.has-card:hover {
-  border-color: #dc3545;
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+  border-color: #218838; /* Darker green on hover */
+  box-shadow: 0 2px 8px rgba(33, 136, 56, 0.3);
 }
 
 .slot-placeholder {
@@ -238,10 +238,10 @@ onUnmounted(() => {
 
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 0 12px rgba(40, 167, 69, 0.5);
+    box-shadow: 0 0 12px rgba(220, 53, 69, 0.5); /* Red pulse */
   }
   50% {
-    box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
+    box-shadow: 0 0 20px rgba(220, 53, 69, 0.8); /* Red pulse */
   }
 }
 
