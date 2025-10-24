@@ -12,13 +12,13 @@
       :style="selectionBoxStyle"
     ></div>
     <div class="instruction-text">
-      🖱️ 请在页面上拖拽以选择截图区域
+      请在屏幕上拖动以选择截图区域 (按 ESC 取消)
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 interface Props {
   visible: boolean
@@ -57,6 +57,16 @@ const selectionBoxStyle = computed(() => ({
   width: `${selectionBox.value.width}px`,
   height: `${selectionBox.value.height}px`
 }))
+
+// 重置选择状态
+const resetSelection = () => {
+  selectionBox.value = {
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0
+  }
+}
 
 // 开始选择
 const startSelection = (e: MouseEvent) => {
@@ -117,32 +127,23 @@ const endSelection = () => {
   resetSelection()
 }
 
-// 重置选择状态
-const resetSelection = () => {
-  selectionBox.value = {
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0
+// Keyboard handler for ESC
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    emit('cancel');
   }
-}
+};
 
-// 监听 visible 变化，重置状态
-watch(() => props.visible, (newVal) => {
-  if (!newVal) {
-    isSelecting.value = false
-    resetSelection()
-  }
-})
+// Lifecycle hooks to manage event listeners
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown);
+  document.body.style.userSelect = 'none';
+});
 
-// 阻止默认的拖拽行为
-watch(() => props.visible, (newVal) => {
-  if (newVal) {
-    document.body.style.userSelect = 'none'
-  } else {
-    document.body.style.userSelect = 'auto'
-  }
-})
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown);
+  document.body.style.userSelect = 'auto';
+});
 </script>
 
 <style scoped>
