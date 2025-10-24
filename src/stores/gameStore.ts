@@ -471,7 +471,7 @@ export const useGameStore = defineStore("game", {
       // 检查游戏是否结束
       if (this.activePlayersCount <= 1) {
         this.log("🏆 游戏结束（只剩一位玩家）");
-        await this.showdown();
+        await this.endHandWithWinner();
         return;
       }
 
@@ -617,6 +617,14 @@ export const useGameStore = defineStore("game", {
     async advanceToNextStage() {
       if (!this.game) return;
 
+      // 检查活跃玩家数量，如果只剩1人或更少，直接结束游戏
+      const activePlayers = this.game.players.filter((p) => !p.isFolded);
+      if (activePlayers.length <= 1) {
+        this.log("🏆 游戏结束（只剩一位玩家）");
+        setTimeout(() => this.endHandWithWinner(), 500);
+        return;
+      }
+
       const currentRound = this.game.currentRound;
       const nextRound = this.getNextRound(currentRound);
 
@@ -667,6 +675,33 @@ export const useGameStore = defineStore("game", {
       if (!currentRound) return "preflop";
       const currentIndex = rounds.indexOf(currentRound as any);
       return currentIndex < rounds.length - 1 ? rounds[currentIndex + 1] : null;
+    },
+
+    /**
+     * 只有一个赢家时结束牌局
+     */
+    async endHandWithWinner() {
+      const winner = this.game?.players.find(p => !p.isFolded);
+      if (winner) {
+        this.log(`🏆 ${winner.id} 是唯一的赢家，赢得底池。`);
+      }
+
+      this.log("🏆 本局结束");
+
+      // 逻辑与showdown类似，准备数据并显示结束模态框
+      console.log(
+        "[DEBUG] 保存快照数据前的currentSuggestionsCache:",
+        this.currentSuggestionsCache,
+      );
+      this.snapshotDataForSave = {
+        gtoSuggestions: [...this.currentSuggestionsCache],
+        gameState: this.game ? this.game.getGameState() : null,
+        handActionHistory: [...this.handActionHistory],
+        replayData: this.replayData ? { ...this.replayData } : null,
+      };
+      console.log("[DEBUG] 保存的快照数据:", this.snapshotDataForSave);
+
+      this.showEndOfHandModal();
     },
 
     /**
