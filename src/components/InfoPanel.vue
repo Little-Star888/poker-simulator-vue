@@ -170,7 +170,7 @@ const currentSuggestions = computed(() => {
 
   // 转换为按阶段分组的显示格式（类似原版JS项目的phase-container结构）
   const groupedSuggestions = []
-  const phaseOrder = ['preflop', 'flop', 'turn', 'river'] // 阶段显示顺序
+  const phaseOrder = ['river', 'turn', 'flop', 'preflop'] // 阶段显示顺序：最新阶段在前
 
   for (const phase of phaseOrder) {
     if (phaseSuggestions.has(phase)) {
