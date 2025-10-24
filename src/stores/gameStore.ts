@@ -232,7 +232,11 @@ export const useGameStore = defineStore("game", {
       if (!round) return;
 
       let actionStr = action;
-      if (amount) {
+      // 根据用户要求，只在 BET 和 RAISE 动作后显示金额
+      if (
+        amount &&
+        (action.toUpperCase() === "BET" || action.toUpperCase() === "RAISE")
+      ) {
         actionStr += ` ${amount}`;
       }
 

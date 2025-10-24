@@ -48,7 +48,6 @@
             @click="executeAction(checkCallAction, checkCallAmount)"
           >
             {{ checkCallLabel }}
-            <span v-if="toCall > 0" class="amount">{{ toCall }}</span>
           </button>
         </div>
       </div>
@@ -56,7 +55,7 @@
       <!-- 滑块面板（垂直）-->
       <div v-show="showSlider" class="amount-slider-overlay" @click.self="showSlider = false">
         <div class="slider-container">
-          <div class="slider-value-display">{{ sliderValue }}</div>
+          <div class="slider-value-display">{{ sliderDisplayText }}</div>
           <div class="slider-track-container">
             <input
               type="range"
@@ -185,6 +184,18 @@ const sliderMax = computed(() => {
 
 const sliderStep = computed(() => settingStore.bb)
 
+const isAllInCondition = computed(() => {
+  if (!player.value) return false;
+  return sliderValue.value + sliderStep.value > sliderMax.value || sliderValue.value === sliderMax.value;
+});
+
+const sliderDisplayText = computed(() => {
+  if (isAllInCondition.value) {
+    return `ALL-IN ${sliderMax.value}`;
+  }
+  return sliderValue.value;
+});
+
 const updatePopupPosition = () => {
   if (!props.visible || !popupRef.value) return;
   const playerElement = document.querySelector(`.player[data-player="${props.playerId}"]`);
@@ -256,10 +267,8 @@ const handleBetRaise = () => {
 
 const confirmBet = () => {
   if (!player.value) return;
-  const atMaxValue = sliderValue.value + sliderStep.value > sliderMax.value;
-  const isAllIn = atMaxValue || sliderValue.value === sliderMax.value;
-  const action = isAllIn ? 'ALLIN' : currentAction.value;
-  const amount = isAllIn ? sliderMax.value : sliderValue.value;
+  const action = isAllInCondition.value ? 'ALLIN' : currentAction.value;
+  const amount = isAllInCondition.value ? sliderMax.value : sliderValue.value;
   executeAction(action, amount);
   showSlider.value = false;
 };
@@ -271,8 +280,7 @@ const executeAction = async (action: string, amount?: number) => {
 }
 
 watch(sliderValue, (newValue) => {
-  const atMaxValue = newValue + sliderStep.value > sliderMax.value;
-  if (atMaxValue) {
+  if (isAllInCondition.value) {
     confirmButtonText.value = 'All-in';
   } else {
     confirmButtonText.value = `确定 ${newValue}`;
