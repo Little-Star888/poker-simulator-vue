@@ -1,41 +1,23 @@
 <template>
-  <div
-    v-if="visible"
-    class="modal-overlay end-of-hand-modal"
-    :class="{ 'is-visible': visible }"
-    @click="handleOverlayClick"
-  >
-    <div class="modal-content" @click.stop>
-      <h3>🏁 牌局结束</h3>
-
+  <div class="modal-overlay is-visible">
+    <div class="modal-content" style="max-width: 400px">
+      <h3>牌局结束</h3>
       <div class="modal-body">
-        <div class="end-message">
-          <p>本局游戏已结束！</p>
-          <p class="question">是否需要为本局游戏保存快照？</p>
-          <div class="hint">
-            <i class="material-icons">info</i>
-            <span>保存快照可以记录本局的牌面、行动和 GTO 建议</span>
-          </div>
-        </div>
+        <p>是否需要为本局游戏保存快照？</p>
       </div>
-
       <div class="modal-footer">
         <button
-          id="eoh-confirm-save"
-          class="game-control-btn confirm-btn"
-          @click="handleConfirm"
+          @click="confirmSave"
+          class="game-control-btn"
+          style="background-color: var(--accent-color)"
         >
-          <i class="material-icons">save</i>
-          <span>确认保存</span>
+          确认
         </button>
-
         <button
-          id="eoh-cancel-save"
+          @click="cancelSave"
           class="game-control-btn secondary-btn"
-          @click="handleCancel"
         >
-          <i class="material-icons">close</i>
-          <span>取消</span>
+          取消
         </button>
       </div>
     </div>
@@ -43,138 +25,109 @@
 </template>
 
 <script setup lang="ts">
-interface Props {
-  visible?: boolean
+import { useGameStore } from '@/stores/gameStore'
+
+const gameStore = useGameStore()
+
+const confirmSave = () => {
+  // 触发确认保存事件，让父组件处理
+  const event = new CustomEvent('endOfHandConfirm')
+  window.dispatchEvent(event)
 }
 
-interface Emits {
-  (e: 'update:visible', value: boolean): void
-  (e: 'confirm'): void
-  (e: 'cancel'): void
-}
-
-withDefaults(defineProps<Props>(), {
-  visible: false
-})
-
-const emit = defineEmits<Emits>()
-
-const handleConfirm = () => {
-  emit('confirm')
-  emit('update:visible', false)
-}
-
-const handleCancel = () => {
-  emit('cancel')
-  emit('update:visible', false)
-}
-
-const handleOverlayClick = () => {
-  // 点击背景也触发取消
-  handleCancel()
+const cancelSave = () => {
+  // 触发取消保存事件，让父组件处理
+  const event = new CustomEvent('endOfHandCancel')
+  window.dispatchEvent(event)
 }
 </script>
 
 <style scoped>
-.end-of-hand-modal .modal-content {
-  max-width: 480px;
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* 确保在所有元素之上 */
+}
+
+.modal-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: #ffffff; /* 使用固定的白色背景 */
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 400px;
   width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 10000;
+}
+
+.modal-overlay.is-visible .modal-content {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.modal-content h3 {
+  margin: 0 0 15px 0;
+  color: #333; /* 使用固定的深色文字 */
+  border-bottom: 1px solid #ddd; /* 使用固定的边框颜色 */
+  padding-bottom: 10px;
 }
 
 .modal-body {
-  padding: 10px 0;
-}
-
-.end-message {
-  text-align: center;
-}
-
-.end-message p {
-  margin: 10px 0;
-  font-size: 15px;
-  color: #555;
-  line-height: 1.6;
-}
-
-.end-message p:first-child {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.question {
-  font-size: 16px !important;
-  font-weight: 500 !important;
-  color: #007bff !important;
-  margin: 20px 0 !important;
-}
-
-.hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #e3f2fd;
-  border-left: 4px solid #2196f3;
-  border-radius: 4px;
-  margin-top: 20px;
-  font-size: 13px;
-  color: #1565c0;
-  text-align: left;
-}
-
-.hint i {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.hint span {
-  flex: 1;
+  margin-bottom: 20px;
+  color: #666; /* 使用固定的文字颜色 */
+  line-height: 1.5;
 }
 
 .modal-footer {
   display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 20px;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
-.modal-footer .game-control-btn {
-  flex: 1;
-  max-width: 180px;
+.game-control-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  min-width: 80px;
 }
 
-.confirm-btn {
-  background-color: #28a745 !important;
+.game-control-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.confirm-btn:hover:not(:disabled) {
-  background-color: #218838 !important;
+.game-control-btn[style*="background-color"] {
+  background-color: #007bff !important; /* 强制使用蓝色 */
+  color: white;
 }
 
-/* 响应式调整 */
-@media (max-width: 480px) {
-  .end-of-hand-modal .modal-content {
-    width: 95%;
-  }
+.secondary-btn {
+  background-color: #f8f9fa !important; /* 使用浅灰色背景 */
+  color: #6c757d !important; /* 使用深灰色文字 */
+  border: 1px solid #dee2e6 !important; /* 使用边框 */
+}
 
-  .modal-footer {
-    flex-direction: column;
-  }
-
-  .modal-footer .game-control-btn {
-    max-width: none;
-    width: 100%;
-  }
-
-  .hint {
-    font-size: 12px;
-    padding: 10px 12px;
-  }
-
-  .hint i {
-    font-size: 18px;
-  }
+.secondary-btn:hover {
+  background-color: #e9ecef !important;
+  border-color: #adb5bd;
 }
 </style>

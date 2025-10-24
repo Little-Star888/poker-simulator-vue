@@ -224,17 +224,36 @@ const handleViewSnapshotClose = () => {
 
 // End of hand modal handling
 const handleEndOfHandConfirm = () => {
+  console.log('[DEBUG] handleEndOfHandConfirm 被调用')
+  console.log('[DEBUG] gameStore.snapshotDataForSave:', gameStore.snapshotDataForSave)
   showEndOfHandModal.value = false
-  // 设置快照后要执行的操作
-  gameStore.postSnapshotAction = () => {
+
+  // 使用保存的快照数据，而不是currentSuggestionsCache
+  if (gameStore.snapshotDataForSave) {
+    console.log('[DEBUG] 设置快照数据 - GTO建议数量:', gameStore.snapshotDataForSave.gtoSuggestions.length)
+    console.log('[DEBUG] 设置快照数据 - GTO建议内容:', gameStore.snapshotDataForSave.gtoSuggestions)
+    snapshotGtoSuggestions.value = gameStore.snapshotDataForSave.gtoSuggestions
+    snapshotGameState.value = gameStore.snapshotDataForSave.gameState
+    // 设置快照后要执行的操作 - 在截图完成后才清空牌桌
+    gameStore.postSnapshotAction = () => {
+      console.log('[DEBUG] 执行postSnapshotAction，现在清空牌桌')
+      gameStore.stopGame()
+      // 清理保存的数据
+      gameStore.snapshotDataForSave = null
+    }
+    // 启动快照流程
+    showScreenshotSelector.value = true
+  } else {
+    console.error('[ERROR] 没有找到保存的快照数据')
     gameStore.stopGame()
   }
-  // 启动快照流程
-  showScreenshotSelector.value = true
 }
 
 const handleEndOfHandCancel = () => {
+  console.log('[DEBUG] handleEndOfHandCancel 被调用')
   showEndOfHandModal.value = false
+  // 清理保存的数据
+  gameStore.snapshotDataForSave = null
   gameStore.stopGame()
 }
 
@@ -271,6 +290,7 @@ const hideLoader = () => {
 }
 
 ;(window as any).showEndOfHandModal = () => {
+  console.log('[DEBUG] 全局 showEndOfHandModal 被调用');
   showEndOfHandModal.value = true
 }
 
@@ -282,6 +302,16 @@ const hideLoader = () => {
 onMounted(() => {
   gameStore.log('德州扑克 AI 测试模拟器已加载')
   gameStore.log('Vue 3 + TypeScript + Pinia 版本')
+
+  // 监听来自gameStore的showEndOfHandModal事件
+  window.addEventListener('showEndOfHandModal', () => {
+    console.log('[DEBUG] App.vue 接收到 showEndOfHandModal 事件')
+    showEndOfHandModal.value = true
+  })
+
+  // 监听EndOfHandModal组件的事件
+  window.addEventListener('endOfHandConfirm', handleEndOfHandConfirm)
+  window.addEventListener('endOfHandCancel', handleEndOfHandCancel)
 })
 </script>
 

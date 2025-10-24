@@ -47,6 +47,12 @@ interface GameStoreState {
   usedCards: Set<string>;
   isPresetUIInitialized: boolean;
   postSnapshotAction: (() => void) | null;
+  snapshotDataForSave: {
+    gtoSuggestions: any[];
+    gameState: any;
+    handActionHistory: any[];
+    replayData: any;
+  } | null;
   isProcessingCardSelection: boolean;
 
   // 快照分页
@@ -99,6 +105,7 @@ export const useGameStore = defineStore("game", {
     usedCards: new Set(),
     isPresetUIInitialized: false,
     postSnapshotAction: null,
+    snapshotDataForSave: null,
     isProcessingCardSelection: false,
 
     snapshotCurrentPage: 0,
@@ -678,7 +685,39 @@ export const useGameStore = defineStore("game", {
       }
 
       this.log("🏆 本局结束");
-      this.stopGame();
+
+      // 在显示弹窗前保存当前快照数据，防止被stopGame清空
+      console.log(
+        "[DEBUG] 保存快照数据前的currentSuggestionsCache:",
+        this.currentSuggestionsCache,
+      );
+      this.snapshotDataForSave = {
+        gtoSuggestions: [...this.currentSuggestionsCache],
+        gameState: this.game ? this.game.getGameState() : null,
+        handActionHistory: [...this.handActionHistory],
+        replayData: this.replayData ? { ...this.replayData } : null,
+      };
+      console.log("[DEBUG] 保存的快照数据:", this.snapshotDataForSave);
+
+      // 显示牌局结束弹窗，提供保存快照选项
+      this.showEndOfHandModal();
+
+      // 不要在这里调用stopGame，等用户确认后再清空牌桌，这样用户可以截图
+      // this.stopGame();
+    },
+
+    /**
+     * 显示牌局结束弹窗
+     */
+    showEndOfHandModal() {
+      console.log("[DEBUG] showEndOfHandModal 被调用");
+      // 使用延迟确保UI更新完成
+      setTimeout(() => {
+        console.log("[DEBUG] 触发 showEndOfHandModal 事件");
+        // 触发显示牌局结束弹窗的事件
+        const event = new CustomEvent("showEndOfHandModal");
+        window.dispatchEvent(event);
+      }, 500);
     },
 
     /**
