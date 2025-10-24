@@ -301,6 +301,14 @@ watch(consoleText, async () => {
     consoleLog.value.scrollTop = consoleLog.value.scrollHeight
   }
 })
+
+// 自动滚动GTO建议到顶部
+watch(currentSuggestions, async () => {
+  await nextTick()
+  if (suggestionDisplay.value) {
+    suggestionDisplay.value.scrollTop = 0 // 滚动到顶部显示最新内容
+  }
+})
 </script>
 
 <style scoped>
