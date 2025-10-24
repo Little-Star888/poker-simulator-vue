@@ -16,8 +16,16 @@
           <span class="stack">{{ formatStack(i) }}</span>
         </div>
         <div v-if="getPlayerBet(i) > 0" class="player-bet">{{ getPlayerBet(i) }}</div>
-        <div class="action-bubble" :class="getActionBubbleClass(i)">
-          {{ getLastAction(i) }}
+        <div
+          v-if="actionBubbles[`P${i}`]?.state !== 'hidden'"
+          class="action-bubble"
+          :class="{
+            show: actionBubbles[`P${i}`]?.state === 'visible',
+            'fade-out': actionBubbles[`P${i}`]?.state === 'fading'
+          }"
+          :key="actionBubbles[`P${i}`]?.key"
+        >
+          {{ actionBubbles[`P${i}`]?.text }}
         </div>
         <div class="hole-cards">
           <div class="hole-card" :style="getHoleCardStyle(i, 0)"></div>
@@ -51,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, watch, onMounted, ref } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
 import { useSettingStore } from '@/stores/settingStore'
 import { getCardImagePath, formatAmount } from '@/utils/helpers'
@@ -59,6 +67,46 @@ import PlayerActionPopup from './PlayerActionPopup.vue'
 
 const gameStore = useGameStore()
 const settingStore = useSettingStore()
+
+// Action bubble state
+const actionBubbles = ref<Record<string, { text: string; state: 'hidden' | 'visible' | 'fading'; key: number }>>({});
+const bubbleTimeouts = ref<Record<string, number[]>>({});
+
+watch(() => gameStore.handActionHistory, (newHistory) => {
+    if (newHistory.length === 0) {
+        actionBubbles.value = {};
+        return;
+    }
+    const lastAction = newHistory[newHistory.length - 1];
+    if (lastAction && lastAction.playerId && lastAction.action !== 'initialState') {
+        const playerId = lastAction.playerId;
+        const actionText = lastAction.action;
+
+        // Clear any existing timers for this player to prevent premature hiding
+        if (bubbleTimeouts.value[playerId]) {
+            bubbleTimeouts.value[playerId].forEach(clearTimeout);
+        }
+        bubbleTimeouts.value[playerId] = [];
+
+        const key = (actionBubbles.value[playerId]?.key || 0) + 1;
+        actionBubbles.value[playerId] = { text: actionText, state: 'visible', key };
+
+        const fadeTimer = window.setTimeout(() => {
+            if (actionBubbles.value[playerId]?.key === key) {
+                actionBubbles.value[playerId].state = 'fading';
+            }
+        }, 1000); // Start fading after 1.5s
+
+        const hideTimer = window.setTimeout(() => {
+            if (actionBubbles.value[playerId]?.key === key) {
+                actionBubbles.value[playerId].state = 'hidden';
+            }
+        }, 2000); // Fully hide after 2s (1.5s visible + 0.5s fade)
+
+        bubbleTimeouts.value[playerId] = [fadeTimer, hideTimer];
+    }
+}, { deep: true });
+
 
 // 玩家数量
 const playerCount = computed(() => settingStore.playerCount)
@@ -163,22 +211,6 @@ const getCardImage = (card: string) => {
   return getCardImagePath(card)
 }
 
-// 获取最后的动作
-const getLastAction = (index: number) => {
-  const playerId = `P${index}`
-  const round = gameState.value?.currentRound
-  if (!round) return ''
-
-  const actions = gameStore.actionRecords[playerId]?.[round]
-  return actions && actions.length > 0 ? actions[actions.length - 1] : ''
-}
-
-// 获取动作气泡类名
-const getActionBubbleClass = (index: number) => {
-  const action = getLastAction(index)
-  return action ? ['show'] : []
-}
-
 // 监听玩家数量变化，更新布局
 watch(playerCount, () => {
   // 玩家数量变化时重新布局
@@ -272,6 +304,21 @@ onMounted(() => {
 .action-bubble.show {
   opacity: 1;
   transform: translateY(0);
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.action-bubble.fade-out {
+  animation: fade-out 0.5s forwards;
 }
 
 .fold-indicator {
