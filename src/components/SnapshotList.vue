@@ -417,7 +417,6 @@ defineExpose({
   background: #fdfdfd;
   border: 1px solid #e0e0e0;
   position: relative;
-  min-height: 120px;
 }
 
 /* 滚动条样式 */
