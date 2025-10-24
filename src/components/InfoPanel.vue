@@ -33,11 +33,23 @@
       <div id="suggestion-display" ref="suggestionDisplay">
         <div v-if="currentSuggestions.length > 0">
           <div
-            v-for="(suggestion, index) in currentSuggestions"
-            :key="index"
-            class="suggestion-item"
+            v-for="(phaseGroup, phaseIndex) in currentSuggestions"
+            :key="phaseIndex"
+            class="phase-container"
+            :data-phase="phaseGroup.phase"
           >
-            <div v-html="formatSuggestion(suggestion)"></div>
+            <!-- 阶段标题 -->
+            <h3 class="phase-title">{{ phaseGroup.phase }}</h3>
+
+            <!-- 该阶段的所有建议 -->
+            <div
+              v-for="(suggestion, index) in phaseGroup.suggestions"
+              :key="index"
+              class="suggestion-item"
+              :data-player-id="suggestion.playerId"
+            >
+              <div v-html="formatSuggestion(suggestion)"></div>
+            </div>
           </div>
         </div>
         <div v-else class="empty-state">
@@ -119,19 +131,90 @@ const currentSuggestions = computed(() => {
   console.log('[InfoPanel] currentSuggestionsCache:', gameStore.currentSuggestionsCache)
   console.log('[InfoPanel] gtoSuggestionFilter:', Array.from(gameStore.gtoSuggestionFilter))
 
-  const suggestions = []
-  for (const playerId in gameStore.currentSuggestionsCache) {
-    console.log(`[InfoPanel] 处理玩家 ${playerId} 的建议`)
-    suggestions.push({
-      playerId,
-      data: gameStore.currentSuggestionsCache[playerId]
-    })
+  // 按阶段组织的建议结构：{phase: {playerId: {suggestion, timestamp}}}
+  const phaseSuggestions = new Map() // phase -> Map(playerId -> {suggestion, timestamp})
+  const filterSet = gameStore.gtoSuggestionFilter
+
+  // 遍历建议数组，按阶段和玩家组织
+  gameStore.currentSuggestionsCache.forEach((item) => {
+    if (filterSet.has(item.playerId) && item.suggestion) {
+      // 使用直接存储的阶段信息，如果没有则使用默认值
+      const phase = item.phase || 'unknown'
+
+      if (!phaseSuggestions.has(phase)) {
+        phaseSuggestions.set(phase, new Map())
+      }
+
+      const phaseMap = phaseSuggestions.get(phase)
+      // 保留每个玩家在每个阶段的最新建议
+      if (!phaseMap.has(item.playerId) ||
+          (item.timestamp && phaseMap.get(item.playerId).timestamp <= item.timestamp)) {
+        phaseMap.set(item.playerId, {
+          suggestion: item.suggestion,
+          timestamp: item.timestamp
+        })
+      }
+    }
+  })
+
+  // 转换为按阶段分组的显示格式（类似原版JS项目的phase-container结构）
+  const groupedSuggestions = []
+  const phaseOrder = ['preflop', 'flop', 'turn', 'river'] // 阶段显示顺序
+
+  for (const phase of phaseOrder) {
+    if (phaseSuggestions.has(phase)) {
+      const phaseMap = phaseSuggestions.get(phase)
+      const phaseData = {
+        phase: phase.toUpperCase(),
+        suggestions: []
+      }
+
+      for (const [playerId, suggestionData] of phaseMap) {
+        console.log(`[InfoPanel] 处理玩家 ${playerId} 在 ${phase} 阶段的建议`)
+        phaseData.suggestions.push({
+          playerId,
+          data: suggestionData.suggestion,
+          timestamp: suggestionData.timestamp
+        })
+      }
+
+      // 按时间戳排序，最新的在前
+      phaseData.suggestions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+
+      if (phaseData.suggestions.length > 0) {
+        groupedSuggestions.push(phaseData)
+      }
+    }
   }
 
-  console.log('[InfoPanel] 最终建议列表:', suggestions)
-  console.log('[InfoPanel] 建议数量:', suggestions.length)
+  // 处理其他未知阶段的建议
+  for (const [phase, phaseMap] of phaseSuggestions) {
+    if (!phaseOrder.includes(phase)) {
+      const phaseData = {
+        phase: phase.toUpperCase(),
+        suggestions: []
+      }
 
-  return suggestions
+      for (const [playerId, suggestionData] of phaseMap) {
+        phaseData.suggestions.push({
+          playerId,
+          data: suggestionData.suggestion,
+          timestamp: suggestionData.timestamp
+        })
+      }
+
+      phaseData.suggestions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+
+      if (phaseData.suggestions.length > 0) {
+        groupedSuggestions.push(phaseData)
+      }
+    }
+  }
+
+  console.log('[InfoPanel] 最终分组建议列表:', groupedSuggestions)
+  console.log('[InfoPanel] 建议组数:', groupedSuggestions.length)
+
+  return groupedSuggestions
 })
 
 const consoleText = computed(() => {
@@ -141,7 +224,40 @@ const consoleText = computed(() => {
 // 格式化 GTO 建议
 const formatSuggestion = (suggestion: any) => {
   console.log('[InfoPanel.formatSuggestion] 输入:', suggestion)
-  const result = formatSuggestionToHTML(suggestion)
+
+  // 格式与原版JS项目一致：给 P8 的建议 (12:36:01) [PREFLOP]:
+  const timeStr = suggestion.timestamp ? new Date(suggestion.timestamp).toLocaleTimeString() : ''
+
+  // 尝试从多个位置获取阶段信息，优先使用存储的phase信息
+  let phaseText = 'UNKNOWN'
+  if (suggestion.phase) {
+    phaseText = suggestion.phase.toUpperCase()
+  } else if (suggestion.data?.response?.gameState?.currentRound) {
+    phaseText = suggestion.data.response.gameState.currentRound.toUpperCase()
+  } else if (suggestion.data?.response?.phase) {
+    phaseText = suggestion.data.response.phase.toUpperCase()
+  }
+
+  // 生成标题，但不让formatSuggestionToHTML重复生成
+  const titleHtml = `
+    <div class="suggestion-header">
+      <h4 style="margin: 0 0 5px 0; color: #66d9ef;">
+        给 ${suggestion.playerId} 的建议 (${timeStr}) <span style="color: #fd971f;">[${phaseText}]</span>:
+      </h4>
+    </div>
+  `
+
+  const contentHtml = formatSuggestionToHTML(suggestion, { includeTitle: false })
+
+  const result = `
+    <div class="suggestion-wrapper">
+      ${titleHtml}
+      <div class="suggestion-content">
+        ${contentHtml}
+      </div>
+    </div>
+  `
+
   console.log('[InfoPanel.formatSuggestion] 输出 HTML 长度:', result.length)
   return result
 }
@@ -213,10 +329,25 @@ watch(consoleText, async () => {
   border: 1px solid #333;
 }
 
+/* 阶段容器样式（类似原版JS项目的phase-container） */
+.phase-container {
+  margin-bottom: 20px;
+}
+
+.phase-title {
+  color: #fd971f;
+  border-bottom: 1px solid #fd971f;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  margin-top: 0;
+  font-size: 1.2em;
+}
+
 .suggestion-item {
   margin-bottom: 15px;
-  padding-bottom: 15px;
   border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+  margin-left: 10px;
 }
 
 .suggestion-item:last-child {

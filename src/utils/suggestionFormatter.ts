@@ -14,8 +14,12 @@ export interface SuggestionData {
  * @param suggestionData 建议数据对象
  * @returns 格式化后的HTML字符串
  */
-export function formatSuggestionToHTML(suggestionData: SuggestionData): string {
+export function formatSuggestionToHTML(
+  suggestionData: SuggestionData,
+  options: { includeTitle?: boolean } = {},
+): string {
   console.log("[formatSuggestionToHTML] 输入数据:", suggestionData);
+  const { includeTitle = true } = options; // 默认包含标题，保持向后兼容
 
   // 兼容不同的数据结构
   const playerId = suggestionData.playerId || "";
@@ -60,11 +64,13 @@ export function formatSuggestionToHTML(suggestionData: SuggestionData): string {
 
   let html = "";
 
-  // 标题
-  if (playerId) {
-    html += `<h4 style="margin: 0 0 8px 0; color: #66d9ef;">给 ${playerId} 的建议 <span style="color: #fd971f;">[${phase.toUpperCase()}]</span>:</h4>`;
-  } else {
-    html += `<h4 style="margin: 0 0 8px 0; color: #66d9ef;">GTO建议 <span style="color: #fd971f;">[${phase.toUpperCase()}]</span>:</h4>`;
+  // 标题（根据选项决定是否包含）
+  if (includeTitle) {
+    if (playerId) {
+      html += `<h4 style="margin: 0 0 8px 0; color: #66d9ef;">给 ${playerId} 的建议 <span style="color: #fd971f;">[${phase.toUpperCase()}]</span>:</h4>`;
+    } else {
+      html += `<h4 style="margin: 0 0 8px 0; color: #66d9ef;">GTO建议 <span style="color: #fd971f;">[${phase.toUpperCase()}]</span>:</h4>`;
+    }
   }
 
   // 检查是否有 localResult（原版后端格式）

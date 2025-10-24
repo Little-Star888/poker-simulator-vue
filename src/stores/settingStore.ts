@@ -64,6 +64,14 @@ export const useSettingStore = defineStore("setting", {
      */
     updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
       this.$patch({ [key]: value } as Partial<Settings>);
+
+      // 如果玩家数量发生变化，重新初始化GTO过滤器
+      if (key === "playerCount") {
+        import("./gameStore").then(({ useGameStore }) => {
+          const gameStore = useGameStore();
+          gameStore.initGTOFilter();
+        });
+      }
     },
 
     /**

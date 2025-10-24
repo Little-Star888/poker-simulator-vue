@@ -167,8 +167,13 @@ const loadSnapshot = async (id: number) => {
       if (typeof data.gtoSuggestions === 'string') {
         console.log('[ViewSnapshotModal] gtoSuggestions 是字符串，尝试 JSON.parse')
         try {
-          allGtoSuggestions = JSON.parse(data.gtoSuggestions)
+          allGtoSuggestions = JSON.parse(data.gtoSuggestions || "[]")
           console.log('[ViewSnapshotModal] JSON.parse 成功，结果:', allGtoSuggestions)
+          // 确保解析结果是数组
+          if (!Array.isArray(allGtoSuggestions)) {
+            console.warn('[ViewSnapshotModal] JSON.parse 结果不是数组，转换为空数组')
+            allGtoSuggestions = []
+          }
         } catch (e) {
           console.error('[ViewSnapshotModal] 解析 gtoSuggestions 失败:', e)
           allGtoSuggestions = []
@@ -194,6 +199,13 @@ const loadSnapshot = async (id: number) => {
     console.log('📋 [ViewSnapshotModal] 解析后的建议详情:', allGtoSuggestions)
     suggestions.value = allGtoSuggestions
     originalSuggestions.value = JSON.stringify(allGtoSuggestions)
+
+    // 确保 allGtoSuggestions 是数组，防止 map 错误
+    if (!Array.isArray(allGtoSuggestions)) {
+      console.error('[ViewSnapshotModal] allGtoSuggestions 不是数组，无法提取玩家ID')
+      allGtoSuggestions = []
+      suggestions.value = []
+    }
 
     // 提取玩家 ID 列表
     const ids = [...new Set(allGtoSuggestions.map((s: any) => s.playerId))].sort() as string[]

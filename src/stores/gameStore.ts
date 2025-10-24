@@ -24,7 +24,13 @@ interface GameStoreState {
 
   // GTO 建议相关
   gtoSuggestionFilter: Set<string>;
-  currentSuggestionsCache: Record<string, GTOSuggestion>;
+  currentSuggestionsCache: Array<{
+    playerId: string;
+    suggestion: GTOSuggestion;
+    request?: any;
+    timestamp?: number;
+    phase?: string; // 添加阶段信息
+  }>;
 
   // 行动历史
   handActionHistory: HandAction[];
@@ -69,8 +75,8 @@ export const useGameStore = defineStore("game", {
     isGamePaused: false,
     isProcessingGameControl: false,
 
-    gtoSuggestionFilter: new Set(["P1"]), // 默认选中P1
-    currentSuggestionsCache: {},
+    gtoSuggestionFilter: new Set(), // 初始化为空，在游戏启动时动态设置
+    currentSuggestionsCache: [],
 
     handActionHistory: [],
     actionRecords: {
@@ -187,7 +193,7 @@ export const useGameStore = defineStore("game", {
       this.isGamePaused = false;
       this.isProcessingGameControl = false;
       // this.gtoSuggestionFilter.clear(); // 不要清除这个状态，因为它是用户偏好
-      this.currentSuggestionsCache = {};
+      this.currentSuggestionsCache = [];
       this.handActionHistory = [];
       this.resetActionRecords();
       this.isProcessingCardSelection = false;
@@ -206,6 +212,22 @@ export const useGameStore = defineStore("game", {
           river: [],
         };
       });
+    },
+
+    /**
+     * 初始化GTO建议过滤器
+     */
+    initGTOFilter() {
+      const settingStore = useSettingStore();
+      // 初始化GTO建议过滤器 - 添加所有玩家（类似原版JS项目）
+      this.gtoSuggestionFilter.clear();
+      for (let i = 1; i <= settingStore.playerCount; i++) {
+        const playerId = `P${i}`;
+        this.gtoSuggestionFilter.add(playerId);
+      }
+      this.log(
+        `🔧 GTO建议过滤器已初始化，包含所有 ${settingStore.playerCount} 位玩家`,
+      );
     },
 
     /**
@@ -292,7 +314,17 @@ export const useGameStore = defineStore("game", {
 
         // 重置状态
         this.resetAllStates();
-        this.currentSuggestionsCache = {};
+        this.currentSuggestionsCache = [];
+
+        // 初始化GTO建议过滤器 - 添加所有玩家（类似原版JS项目）
+        this.gtoSuggestionFilter.clear();
+        for (let i = 1; i <= settingStore.playerCount; i++) {
+          const playerId = `P${i}`;
+          this.gtoSuggestionFilter.add(playerId);
+        }
+        this.log(
+          `🔧 GTO建议过滤器已初始化，包含所有 ${settingStore.playerCount} 位玩家`,
+        );
 
         // 重置游戏引擎
         this.game!.reset(settingStore.getAllSettings);
@@ -356,7 +388,7 @@ export const useGameStore = defineStore("game", {
       this.isGameRunning = false;
       this.isWaitingForManualInput = false;
       this.isGamePaused = false;
-      this.currentSuggestionsCache = {};
+      this.currentSuggestionsCache = [];
       // Reset the game object to clear the table display
       this.game = new PokerGame();
       this.resetActionRecords();
@@ -428,7 +460,13 @@ export const useGameStore = defineStore("game", {
             this.actionRecords,
             settingStore.getAllSettings,
           );
-          this.currentSuggestionsCache[currentPlayerId] = suggestion;
+          // 添加到建议数组中，保留历史记录（类似原版JS项目）
+          this.currentSuggestionsCache.push({
+            playerId: currentPlayerId,
+            suggestion: suggestion,
+            timestamp: Date.now(),
+            phase: this.game.currentRound, // 添加当前阶段信息
+          });
           this.log(`💡 已获取 ${currentPlayerId} 的 GTO 建议`);
         } catch (error: any) {
           this.log(`⚠️ 获取 GTO 建议失败: ${error.message}`);

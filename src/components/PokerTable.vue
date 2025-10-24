@@ -143,10 +143,11 @@ const getHoleCardStyle = (playerIndex: number, cardIndex: number) => {
   const cards = player.holeCards || []
   const card = cards[cardIndex];
 
-  // If player has folded, show nothing in their slot
-  if (player.isFolded) {
-      return { backgroundImage: 'none' };
-  }
+  // 弃牌后仍然显示手牌（修改前：弃牌会隐藏手牌）
+  // 注释掉弃牌隐藏逻辑，保留手牌显示
+  // if (player.isFolded) {
+  //     return { backgroundImage: 'none' };
+  // }
 
   // If the card exists, show it
   if (card) {

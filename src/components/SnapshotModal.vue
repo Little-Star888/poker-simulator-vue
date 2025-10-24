@@ -110,9 +110,8 @@ const gameStateInfo = computed(() => {
 })
 
 const gtoSuggestionsInfo = computed(() => {
-  if (!props.gtoSuggestions) return '0 条'
-  const count = Object.keys(props.gtoSuggestions).length
-  return `${count} 条建议`
+  if (!props.gtoSuggestions || !Array.isArray(props.gtoSuggestions)) return '0 条'
+  return `${props.gtoSuggestions.length} 条建议`
 })
 
 const actionHistoryInfo = computed(() => {
