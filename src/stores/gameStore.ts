@@ -186,7 +186,7 @@ export const useGameStore = defineStore("game", {
       this.isWaitingForManualInput = false;
       this.isGamePaused = false;
       this.isProcessingGameControl = false;
-      this.gtoSuggestionFilter.clear();
+      // this.gtoSuggestionFilter.clear(); // 不要清除这个状态，因为它是用户偏好
       this.currentSuggestionsCache = {};
       this.handActionHistory = [];
       this.resetActionRecords();
@@ -262,23 +262,25 @@ export const useGameStore = defineStore("game", {
 
       // Validation for presets
       if (settingStore.usePresetCommunity) {
-          const flop = settingStore.presetCards.flop;
-          if (!flop[0] || !flop[1] || !flop[2]) {
-              this.log("❌ 校验失败：已勾选“预设公共牌”，但未选择完整的3张翻牌。");
-              return; // Stop the game from starting
-          }
+        const flop = settingStore.presetCards.flop;
+        if (!flop[0] || !flop[1] || !flop[2]) {
+          this.log("❌ 校验失败：已勾选“预设公共牌”，但未选择完整的3张翻牌。");
+          return; // Stop the game from starting
+        }
       }
 
       if (settingStore.usePresetHands) {
-          const players = settingStore.presetCards.players;
-          for (let i = 1; i <= settingStore.playerCount; i++) {
-              const playerId = `P${i}`;
-              const hand = players[playerId];
-              if (!hand || !hand[0] || !hand[1]) {
-                  this.log(`❌ 校验失败：已勾选“预设手牌”，但玩家 ${playerId} 的手牌未完整选择。`);
-                  return; // Stop the game from starting
-              }
+        const players = settingStore.presetCards.players;
+        for (let i = 1; i <= settingStore.playerCount; i++) {
+          const playerId = `P${i}`;
+          const hand = players[playerId];
+          if (!hand || !hand[0] || !hand[1]) {
+            this.log(
+              `❌ 校验失败：已勾选“预设手牌”，但玩家 ${playerId} 的手牌未完整选择。`,
+            );
+            return; // Stop the game from starting
           }
+        }
       }
 
       try {
