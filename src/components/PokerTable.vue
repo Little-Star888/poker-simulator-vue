@@ -1,13 +1,13 @@
 <template>
   <div class="poker-table-wrapper">
-    <div class="poker-table">
+    <div class="poker-table" ref="pokerTableRef">
       <!-- Players P1-P8 -->
       <div
         v-for="i in playerCount"
         :key="i"
         class="player"
         :class="getPlayerClasses(i)"
-        :style="getPlayerPosition(i)"
+        :style="playerPositions[i]"
         :data-player="`P${i}`"
       >
         <div class="fold-indicator">FOLD</div>
@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted, ref } from 'vue'
+import { computed, watch, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
 import { useSettingStore } from '@/stores/settingStore'
 import { getCardImagePath, formatAmount } from '@/utils/helpers'
@@ -95,7 +95,7 @@ watch(() => gameStore.handActionHistory, (newHistory) => {
             if (actionBubbles.value[playerId]?.key === key) {
                 actionBubbles.value[playerId].state = 'fading';
             }
-        }, 1000); // Start fading after 1.5s
+        }, 1500); // Start fading after 1.5s
 
         const hideTimer = window.setTimeout(() => {
             if (actionBubbles.value[playerId]?.key === key) {
@@ -116,29 +116,72 @@ const gameState = computed(() => gameStore.currentGameState)
 const communityCards = computed(() => gameState.value?.communityCards || [])
 const pot = computed(() => gameState.value?.pot || 0)
 
-// 获取玩家位置（圆形布局）
-const getPlayerPosition = (index: number) => {
-  // P1 固定在最下方（90°），其他玩家平均分配角度
-  let angle: number
-  if (index === 1) {
-    angle = 90 // P1 固定在最下方
-  } else {
-    // 其他玩家平均分配剩余角度
-    const angleStep = 360 / playerCount.value
-    angle = 90 + angleStep * (index - 1)
+// Layout and Positioning
+const pokerTableRef = ref<HTMLElement | null>(null);
+const playerPositions = ref<Record<number, any>>({});
+
+const updateLayout = () => {
+  const table = pokerTableRef.value;
+  if (!table) return;
+
+  const tableRect = table.getBoundingClientRect();
+  const centerX = tableRect.width / 2;
+  const centerY = tableRect.height / 2;
+  
+  // Margin to keep players and bubbles inside.
+  // Player height is 100px (radius 50). Bubble is 30px above. Total offset ~80px.
+  const marginX = 80;
+  const marginY = 80;
+  const radiusX = tableRect.width / 2 - marginX;
+  const radiusY = tableRect.height / 2 - marginY;
+
+  const localPlayerCount = playerCount.value;
+  if (localPlayerCount === 0) return;
+
+  const angleStep = 360 / localPlayerCount;
+  const newPositions: Record<number, any> = {};
+
+  for (let i = 1; i <= localPlayerCount; i++) {
+    let angleDeg;
+    if (i === 1) {
+      angleDeg = 90; // P1 at bottom
+    }
+    else {
+      angleDeg = 90 + angleStep * (i - 1);
+    }
+    const angleRad = angleDeg * (Math.PI / 180);
+    const x = centerX + radiusX * Math.cos(angleRad);
+    const y = centerY + radiusY * Math.sin(angleRad);
+
+    newPositions[i] = {
+      left: `${x}px`,
+      top: `${y}px`,
+      transform: 'translate(-50%, -50%)'
+    };
   }
+  playerPositions.value = newPositions;
+};
 
-  const radius = 42 // percentage
+let resizeObserver: ResizeObserver | null = null;
 
-  const x = 50 + radius * Math.cos((angle * Math.PI) / 180)
-  const y = 50 + radius * Math.sin((angle * Math.PI) / 180)
-
-  return {
-    left: `${x}%`,
-    top: `${y}%`,
-    transform: 'translate(-50%, -50%)'
+onMounted(() => {
+  const table = pokerTableRef.value;
+  if (table) {
+    // Use nextTick to ensure table is rendered before calculating layout
+    nextTick(() => {
+        updateLayout();
+        resizeObserver = new ResizeObserver(updateLayout);
+        resizeObserver.observe(table);
+    });
   }
-}
+});
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
+
 
 // 获取玩家类名
 const getPlayerClasses = (index: number) => {
@@ -213,12 +256,12 @@ const getCardImage = (card: string) => {
 
 // 监听玩家数量变化，更新布局
 watch(playerCount, () => {
-  // 玩家数量变化时重新布局
+  // Use nextTick to ensure DOM is updated before recalculating layout
+  nextTick(() => {
+    updateLayout();
+  });
 })
 
-onMounted(() => {
-  // 初始化布局
-})
 </script>
 
 <style scoped>
