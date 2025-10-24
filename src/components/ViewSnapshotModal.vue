@@ -48,29 +48,40 @@
         <!-- GTO 建议列表 -->
         <div class="suggestions-list">
           <div
-            v-for="(suggestionData, index) in suggestions"
-            :key="index"
-            class="suggestion-item"
-            :data-player-id="suggestionData.playerId"
-            :style="{ display: filterState.has(suggestionData.playerId) ? 'flex' : 'none' }"
+            v-for="(phaseGroup, phaseIndex) in groupedSuggestions"
+            :key="phaseIndex"
+            class="phase-container"
+            :data-phase="phaseGroup.phase"
           >
-            <!-- 建议内容 -->
-            <div class="suggestion-content">
-              <div v-html="renderSuggestion(suggestionData)"></div>
-            </div>
+            <!-- 阶段标题 -->
+            <h3 class="phase-title">{{ phaseGroup.phase }}</h3>
 
-            <!-- 批注编辑区 -->
-            <div class="suggestion-notes">
-              <textarea
-                v-model="suggestionData.notes"
-                :placeholder="`关于 ${suggestionData.playerId} 建议的批注...`"
-                :disabled="isSaving"
-                :class="{ 'saving-state': isSaving }"
-              ></textarea>
+            <!-- 该阶段的所有建议 -->
+            <div
+              v-for="(suggestionData, index) in phaseGroup.suggestions"
+              :key="index"
+              class="suggestion-item"
+              :data-player-id="suggestionData.playerId"
+              :style="{ display: filterState.has(suggestionData.playerId) ? 'flex' : 'none' }"
+            >
+              <!-- 建议内容 -->
+              <div class="suggestion-content">
+                <div v-html="renderSuggestion(suggestionData)"></div>
+              </div>
+
+              <!-- 批注编辑区 -->
+              <div class="suggestion-notes">
+                <textarea
+                  v-model="suggestionData.notes"
+                  :placeholder="`关于 ${suggestionData.playerId} 建议的批注...`"
+                  :disabled="isSaving"
+                  :class="{ 'saving-state': isSaving }"
+                ></textarea>
+              </div>
             </div>
           </div>
 
-          <p v-if="suggestions.length === 0" class="empty-message">
+          <p v-if="groupedSuggestions.length === 0" class="empty-message">
             此快照没有保存GTO建议。
           </p>
         </div>
@@ -139,6 +150,7 @@ const gameStore = useGameStore()
 // 状态
 const snapshot = ref<any>(null)
 const suggestions = ref<any[]>([])
+const groupedSuggestions = ref<any[]>([]) // 按阶段分组的建议
 const playerIds = ref<string[]>([])
 const filterState = ref<Set<string>>(new Set())
 const isSaving = ref(false)
@@ -215,10 +227,68 @@ const loadSnapshot = async (id: number) => {
     console.log('[ViewSnapshotModal] filterState 初始化为:', Array.from(filterState.value))
 
     gameStore.log(`✅ 快照加载成功 (${allGtoSuggestions.length} 条建议)`)
+
+    // 按阶段分组建议
+    groupSuggestionsByPhase(allGtoSuggestions)
   } catch (error: any) {
     gameStore.log(`❌ 加载快照详情失败: ${error.message}`)
     console.error('加载快照失败:', error)
   }
+}
+
+// 按阶段分组建议的函数
+const groupSuggestionsByPhase = (suggestionsList: any[]) => {
+  console.log('[ViewSnapshotModal] 开始按阶段分组建议')
+
+  // 按阶段组织的建议结构：{phase: {suggestions: []}}
+  const phaseSuggestions = new Map()
+
+  // 遍历建议数组，按阶段组织
+  suggestionsList.forEach((item) => {
+    if (item.suggestion) {
+      // 尝试从多个位置获取阶段信息
+      let phase = 'unknown'
+      if (item.phase) {
+        phase = item.phase
+      } else if (item.suggestion?.response?.gameState?.currentRound) {
+        phase = item.suggestion.response.gameState.currentRound
+      } else if (item.suggestion?.response?.phase) {
+        phase = item.suggestion.response.phase
+      }
+
+      if (!phaseSuggestions.has(phase)) {
+        phaseSuggestions.set(phase, [])
+      }
+
+      phaseSuggestions.get(phase).push(item)
+    }
+  })
+
+  // 转换为数组格式，按阶段顺序排序
+  const phaseOrder = ['preflop', 'flop', 'turn', 'river']
+  const grouped = []
+
+  for (const phase of phaseOrder) {
+    if (phaseSuggestions.has(phase)) {
+      grouped.push({
+        phase: phase.toUpperCase(),
+        suggestions: phaseSuggestions.get(phase)
+      })
+    }
+  }
+
+  // 处理其他未知阶段的建议
+  for (const [phase, suggestions] of phaseSuggestions) {
+    if (!phaseOrder.includes(phase)) {
+      grouped.push({
+        phase: phase.toUpperCase(),
+        suggestions: suggestions
+      })
+    }
+  }
+
+  console.log('[ViewSnapshotModal] 分组后的建议:', grouped)
+  groupedSuggestions.value = grouped
 }
 
 const toggleFilter = (playerId: string) => {
@@ -469,6 +539,21 @@ watch(
   border-radius: 4px;
 }
 
+/* 阶段容器样式（类似InfoPanel） */
+.phase-container {
+  margin-bottom: 20px;
+}
+
+.phase-title {
+  color: #fd971f;
+  border-bottom: 1px solid #fd971f;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  margin-top: 0;
+  font-size: 1.2em;
+  background: #f9f9f9;
+}
+
 .suggestion-item {
   display: flex;
   gap: 15px;
@@ -477,6 +562,7 @@ watch(
   background: #fff;
   margin-bottom: 10px;
   border-radius: 4px;
+  margin-left: 10px;
 }
 
 .suggestion-item:last-child {

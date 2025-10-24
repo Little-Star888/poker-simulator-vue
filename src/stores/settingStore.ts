@@ -9,12 +9,12 @@ export const useSettingStore = defineStore("setting", {
   state: (): Settings => ({
     // ===== 默认配置值 =====
     mode: "manual", // 游戏模式: 'auto' | 'manual'
-    sb: 50, // 小盲注 (Small Blind)
-    bb: 100, // 大盲注 (Big Blind)
+    sb: 10, // 小盲注 (Small Blind) - 修改为10
+    bb: 20, // 大盲注 (Big Blind) - 修改为20
     autoDelay: 1500, // 自动模式下每步延时（毫秒）
     playerCount: 8, // 玩家数量
-    minStack: 10000, // 最小初始筹码
-    maxStack: 20000, // 最大初始筹码
+    minStack: 1000, // 最小初始筹码 - 修改为1000
+    maxStack: 2000, // 最大初始筹码 - 修改为2000
     potType: "single_raised", // 底池类型
     p1Role: "random", // P1开局角色
 
@@ -24,9 +24,9 @@ export const useSettingStore = defineStore("setting", {
     suggestOnTurn: false,
     suggestOnRiver: false,
 
-    // 牌局预设 - 默认勾选（与原版保持一致）
-    usePresetHands: true,
-    usePresetCommunity: true,
+    // 牌局预设 - 默认取消选中
+    usePresetHands: false,
+    usePresetCommunity: false,
     presetCards: {
       players: {},
       flop: [null, null, null],
