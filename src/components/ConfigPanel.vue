@@ -4,228 +4,232 @@
     <div class="section" id="runtime-config-section">
       <h3>⚙️ 运行配置</h3>
 
-      <div class="form-row">
-        <label>游戏模式:</label>
-        <select v-model="settingStore.mode" class="mode-select" style="width:72px;">
-          <option value="auto">自动</option>
-          <option value="manual">手动</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <label>盲注设置:</label>
-        <input
-          type="number"
-          v-model.number="settingStore.sb"
-          @input="onSBChange"
-          min="1"
-          class="blind-input"
-          style="width:50px;"
-        /> /
-        <input
-          type="number"
-          :value="settingStore.bb"
-          readonly
-          class="readonly-input blind-input"
-          min="1"
-          style="width:50px;"
-        />
-      </div>
-
-      <div class="form-row">
-        <label>底池类型:</label>
-        <select
-          v-model="settingStore.potType"
-          :disabled="settingStore.mode === 'manual'"
-          class="pot-type-select"
-        >
-          <option value="unrestricted">无限制</option>
-          <option value="single_raised">单一加注底池</option>
-          <option value="3bet">3-Bet 底池</option>
-          <option value="4bet">4-Bet及以上</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <label>玩家数量:</label>
-        <input
-          type="number"
-          v-model.number="settingStore.playerCount"
-          @change="onPlayerCountChange"
-          min="2"
-          max="8"
-          class="player-count-input"
-        />
-      </div>
-
-      <div class="form-row">
-        <label>玩家思考时间 (ms):</label>
-        <input
-          type="number"
-          v-model.number="settingStore.autoDelay"
-          min="100"
-          class="delay-input"
-          style="width:50px;"
-        />
-      </div>
-
-      <div class="form-row">
-        <label>P1开局位置:</label>
-        <select v-model="settingStore.p1Role" class="role-select" style="width:72px;">
-          <option value="random">随机</option>
-          <option v-for="role in availableRoles" :key="role" :value="role">
-            {{ role }}
-          </option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <label>初始筹码范围:</label>
-        <input
-          type="number"
-          v-model.number="settingStore.minStack"
-          min="1"
-          class="stack-input"
-          style="width:65px;"
-        /> -
-        <input
-          type="number"
-          v-model.number="settingStore.maxStack"
-          min="1"
-          class="stack-input"
-          style="width:65px;"
-        />
-      </div>
-
-      <div class="form-row">
-        <label>GTO建议阶段:</label>
-        <div id="suggestion-phases">
-          <label>
-            <input type="checkbox" v-model="settingStore.suggestOnPreflop"> Preflop
-          </label>
-          <label>
-            <input type="checkbox" v-model="settingStore.suggestOnFlop"> Flop
-          </label>
-          <label>
-            <input type="checkbox" v-model="settingStore.suggestOnTurn"> Turn
-          </label>
-          <label>
-            <input type="checkbox" v-model="settingStore.suggestOnRiver"> River
-          </label>
+      <fieldset :disabled="isGameInProgress" :class="{ 'disabled-section': isGameInProgress }">
+        <div class="form-row">
+          <label>游戏模式:</label>
+          <select v-model="settingStore.mode" class="mode-select" style="width:72px;">
+            <option value="auto">自动</option>
+            <option value="manual">手动</option>
+          </select>
         </div>
-      </div>
 
-      <div class="form-row">
-        <label>GTO建议筛选:</label>
-        <div id="gto-filter-players" class="gto-filter-players">
-          <label
-            v-for="i in settingStore.playerCount"
-            :key="i"
+        <div class="form-row">
+          <label>盲注设置:</label>
+          <input
+            type="number"
+            v-model.number="settingStore.sb"
+            @input="onSBChange"
+            min="1"
+            class="blind-input"
+            style="width:50px;"
+          /> /
+          <input
+            type="number"
+            :value="settingStore.bb"
+            readonly
+            class="readonly-input blind-input"
+            min="1"
+            style="width:50px;"
+          />
+        </div>
+
+        <div class="form-row">
+          <label>底池类型:</label>
+          <select
+            v-model="settingStore.potType"
+            :disabled="isGameInProgress || settingStore.mode === 'manual'"
+            class="pot-type-select"
           >
-            <input
-              type="checkbox"
-              :checked="gameStore.gtoSuggestionFilter.has(`P${i}`)"
-              @change="toggleGTOFilter(`P${i}`, $event)"
-            >
-            P{{ i }}
-          </label>
+            <option value="unrestricted">无限制</option>
+            <option value="single_raised">单一加注底池</option>
+            <option value="3bet">3-Bet 底池</option>
+            <option value="4bet">4-Bet及以上</option>
+          </select>
         </div>
-      </div>
+
+        <div class="form-row">
+          <label>玩家数量:</label>
+          <input
+            type="number"
+            v-model.number="settingStore.playerCount"
+            @change="onPlayerCountChange"
+            min="2"
+            max="8"
+            class="player-count-input"
+          />
+        </div>
+
+        <div class="form-row">
+          <label>玩家思考时间 (ms):</label>
+          <input
+            type="number"
+            v-model.number="settingStore.autoDelay"
+            min="100"
+            class="delay-input"
+            style="width:50px;"
+          />
+        </div>
+
+        <div class="form-row">
+          <label>P1开局位置:</label>
+          <select v-model="settingStore.p1Role" class="role-select" style="width:72px;">
+            <option value="random">随机</option>
+            <option v-for="role in availableRoles" :key="role" :value="role">
+              {{ role }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>初始筹码范围:</label>
+          <input
+            type="number"
+            v-model.number="settingStore.minStack"
+            min="1"
+            class="stack-input"
+            style="width:65px;"
+          /> -
+          <input
+            type="number"
+            v-model.number="settingStore.maxStack"
+            min="1"
+            class="stack-input"
+            style="width:65px;"
+          />
+        </div>
+
+        <div class="form-row">
+          <label>GTO建议阶段:</label>
+          <div id="suggestion-phases">
+            <label>
+              <input type="checkbox" v-model="settingStore.suggestOnPreflop"> Preflop
+            </label>
+            <label>
+              <input type="checkbox" v-model="settingStore.suggestOnFlop"> Flop
+            </label>
+            <label>
+              <input type="checkbox" v-model="settingStore.suggestOnTurn"> Turn
+            </label>
+            <label>
+              <input type="checkbox" v-model="settingStore.suggestOnRiver"> River
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset :disabled="isReplayMode" :class="{ 'disabled-section': isReplayMode }">
+        <div class="form-row">
+          <label>GTO建议筛选:</label>
+          <div id="gto-filter-players" class="gto-filter-players">
+            <label
+              v-for="i in settingStore.playerCount"
+              :key="i"
+            >
+              <input
+                type="checkbox"
+                :checked="gameStore.gtoSuggestionFilter.has(`P${i}`)"
+                @change="toggleGTOFilter(`P${i}`, $event)"
+              >
+              P{{ i }}
+            </label>
+          </div>
+        </div>
+      </fieldset>
     </div>
 
     <!-- 牌局预设 -->
     <div class="section" id="preset-section">
       <h3>🃏 牌局预设</h3>
-      <div class="form-row">
-        <label>预设选项:</label>
-        <label>
-          <input
-            type="checkbox"
-            v-model="settingStore.usePresetCommunity"
-            @change="onPresetChange"
-            :disabled="gameStore.isInReplayMode"
-          />
-          预设公共牌
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            v-model="settingStore.usePresetHands"
-            @change="onPresetChange"
-            :disabled="gameStore.isInReplayMode"
-          />
-          预设手牌
-        </label>
-      </div>
-
-      <div
-        v-show="anyPresetEnabled"
-        id="preset-controls"
-        style="margin-top: 15px;"
-      >
-        <!-- 公共牌预设 -->
-        <div
-          v-show="settingStore.usePresetCommunity"
-          id="preset-community-cards-container"
-          style="margin-top: 15px;"
-        >
-          <h4>公共牌:</h4>
-          <div class="community-cards-row">
-            <strong>Flop:</strong>
-            <PresetSlot
-              v-for="i in 3"
-              :key="`flop-${i}`"
-              type="community"
-              stage="flop"
-              :card-index="i - 1"
-              :card="settingStore.presetCards.flop[i - 1]"
+      <fieldset :disabled="isGameInProgress" :class="{ 'disabled-section': isGameInProgress }">
+        <div class="form-row">
+          <label>预设选项:</label>
+          <label>
+            <input
+              type="checkbox"
+              v-model="settingStore.usePresetCommunity"
+              @change="onPresetChange"
             />
-            <strong class="turn-label">Turn:</strong>
-            <PresetSlot
-              type="community"
-              stage="turn"
-              :card-index="0"
-              :card="settingStore.presetCards.turn[0]"
+            预设公共牌
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              v-model="settingStore.usePresetHands"
+              @change="onPresetChange"
             />
-            <strong class="river-label">River:</strong>
-            <PresetSlot
-              type="community"
-              stage="river"
-              :card-index="0"
-              :card="settingStore.presetCards.river[0]"
-            />
-          </div>
+            预设手牌
+          </label>
         </div>
 
-        <!-- 玩家手牌预设 -->
         <div
-          v-show="settingStore.usePresetHands"
-          id="preset-player-hands-container"
-          class="preset-player-hands-container"
+          v-show="anyPresetEnabled"
+          id="preset-controls"
+          style="margin-top: 15px;"
         >
-          <h4>玩家手牌:</h4>
-          <div class="preset-player-hands-grid">
-            <div
-              v-for="i in settingStore.playerCount"
-              :key="`player-${i}`"
-              class="player-hand-preset"
-            >
-              <strong>P{{ i }}:</strong>
+          <!-- 公共牌预设 -->
+          <div
+            v-show="settingStore.usePresetCommunity"
+            id="preset-community-cards-container"
+            style="margin-top: 15px;"
+          >
+            <h4>公共牌:</h4>
+            <div class="community-cards-row">
+              <strong>Flop:</strong>
               <PresetSlot
-                v-for="j in 2"
-                :key="`player-${i}-card-${j}`"
-                type="player"
-                :player-id="`P${i}`"
-                :card-index="j - 1"
-                :card="getPlayerCard(i, j - 1)"
+                v-for="i in 3"
+                :key="`flop-${i}`"
+                type="community"
+                stage="flop"
+                :card-index="i - 1"
+                :card="settingStore.presetCards.flop[i - 1]"
+              />
+              <strong class="turn-label">Turn:</strong>
+              <PresetSlot
+                type="community"
+                stage="turn"
+                :card-index="0"
+                :card="settingStore.presetCards.turn[0]"
+              />
+              <strong class="river-label">River:</strong>
+              <PresetSlot
+                type="community"
+                stage="river"
+                :card-index="0"
+                :card="settingStore.presetCards.river[0]"
               />
             </div>
           </div>
-        </div>
 
-        <!-- 卡牌选择器 -->
-        <CardPicker v-if="anyPresetEnabled" />
-      </div>
+          <!-- 玩家手牌预设 -->
+          <div
+            v-show="settingStore.usePresetHands"
+            id="preset-player-hands-container"
+            class="preset-player-hands-container"
+          >
+            <h4>玩家手牌:</h4>
+            <div class="preset-player-hands-grid">
+              <div
+                v-for="i in settingStore.playerCount"
+                :key="`player-${i}`"
+                class="player-hand-preset"
+              >
+                <strong>P{{ i }}:</strong>
+                <PresetSlot
+                  v-for="j in 2"
+                  :key="`player-${i}-card-${j}`"
+                  type="player"
+                  :player-id="`P${i}`"
+                  :card-index="j - 1"
+                  :card="getPlayerCard(i, j - 1)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡牌选择器 -->
+          <CardPicker v-if="anyPresetEnabled" />
+        </div>
+      </fieldset>
     </div>
 
     <!-- 快照管理 -->
@@ -253,6 +257,10 @@ const settingStore = useSettingStore()
 
 // 快照列表引用
 const snapshotListRef = ref<InstanceType<typeof SnapshotList> | null>(null)
+
+// 根据游戏状态禁用配置
+const isGameInProgress = computed(() => gameStore.isGameRunning || gameStore.isInReplayMode)
+const isReplayMode = computed(() => gameStore.isInReplayMode)
 
 // 计算可用的角色选项
 const availableRoles = computed<PlayerRole[]>(() => {
@@ -476,6 +484,17 @@ onMounted(() => {
 </script>
 
 <style scoped>
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.disabled-section {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 .config-panel {
   display: flex;
   flex-direction: column;
