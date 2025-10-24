@@ -198,21 +198,71 @@ const sliderDisplayText = computed(() => {
 
 const updatePopupPosition = () => {
   if (!props.visible || !popupRef.value) return;
-  const playerElement = document.querySelector(`.player[data-player="${props.playerId}"]`);
-  if (playerElement) {
-    const playerRect = playerElement.getBoundingClientRect();
-    const popupRect = popupRef.value.getBoundingClientRect();
 
+  const playerElement = document.querySelector(`.player[data-player="${props.playerId}"]`);
+  const tableElement = document.querySelector('.poker-table');
+  const popupElement = popupRef.value;
+
+  if (playerElement && tableElement && popupElement) {
+    const playerRect = playerElement.getBoundingClientRect();
+    const tableRect = tableElement.getBoundingClientRect();
+    const popupRect = popupElement.getBoundingClientRect();
+
+    // Start with position centered on the player
     let top = playerRect.top + (playerRect.height / 2) - (popupRect.height / 2);
     let left = playerRect.left + (playerRect.width / 2) - (popupRect.width / 2);
 
-    if (top < 0) top = 5;
-    if (left < 0) left = 5;
+    const tableCenterX = tableRect.left + tableRect.width / 2;
+    const playerCenterX = playerRect.left + playerRect.width / 2;
+    const tableCenterY = tableRect.top + tableRect.height / 2;
+    const playerCenterY = playerRect.top + playerRect.height / 2;
+
+    const dx = playerCenterX - tableCenterX;
+    const dy = playerCenterY - tableCenterY;
+
+    // Identify cardinal players (top, bottom, left, right)
+    const isTopOrBottom = Math.abs(dy) > Math.abs(dx) * 1.5; // More vertical than horizontal
+    const isLeftOrRight = Math.abs(dx) > Math.abs(dy) * 1.5; // More horizontal than vertical
+
+    const margin = 5; // 5px margin from the edge
+
+    if (isTopOrBottom) {
+        // Top or Bottom player
+        if (dy < 0) { // Top player
+            // If popup overflows top of table, align popup top with table top
+            if (top < tableRect.top) {
+                top = tableRect.top + margin;
+            }
+        } else { // Bottom player
+            // If popup overflows bottom of table, align popup bottom with table bottom
+            if (top + popupRect.height > tableRect.bottom) {
+                top = tableRect.bottom - popupRect.height - margin;
+            }
+        }
+    } else if (isLeftOrRight) {
+        // Left or Right player
+        if (dx < 0) { // Left player
+            // If popup overflows left of table, align popup left with table left
+            if (left < tableRect.left) {
+                left = tableRect.left + margin;
+            }
+        } else { // Right player
+            // If popup overflows right of table, align popup right with table right
+            if (left + popupRect.width > tableRect.right) {
+                left = tableRect.right - popupRect.width - margin;
+            }
+        }
+    }
+    // For corner players, we use the default centered position, only clamped by the window below.
+
+    // Final clamping to ensure it's always inside the viewport (as a fallback for all players)
+    if (top < 0) top = margin;
+    if (left < 0) left = margin;
     if (top + popupRect.height > window.innerHeight) {
-      top = window.innerHeight - popupRect.height - 5;
+      top = window.innerHeight - popupRect.height - margin;
     }
     if (left + popupRect.width > window.innerWidth) {
-      left = window.innerWidth - popupRect.width - 5;
+      left = window.innerWidth - popupRect.width - margin;
     }
 
     popupStyle.value = {
