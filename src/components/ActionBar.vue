@@ -264,8 +264,9 @@ const handleReplayExit = () => {
   background-color: #007bff;
 }
 
-#save-snapshot-btn:hover:not(:disabled) {
-  background-color: #0069d9;
+#save-snapshot-btn:disabled {
+  background-color: #6c757d;
+  color: #ffffff;
 }
 
 #config-toggle-btn {
