@@ -138,8 +138,29 @@ const handleConfirm = async () => {
       name: finalName,
       gameState: JSON.stringify(props.gameState),
       imageData: props.previewImage || '',
-      gtoSuggestions: JSON.stringify(props.gtoSuggestions),
-      actionHistory: JSON.stringify(gameStore.handActionHistory),
+      gtoSuggestions: JSON.stringify(props.gtoSuggestions.map((item: any) => {
+        // 将Vue版本的数据结构转换为原版JS期望的格式
+        const suggestion = item.suggestion;
+        const normalizedSuggestion = {
+          // 提升response中的字段到顶层，与原版JS期望的格式一致
+          myCards: suggestion.response?.myCards || suggestion.myCards,
+          boardCards: suggestion.response?.boardCards || suggestion.boardCards,
+          localResult: suggestion.response?.localResult || suggestion.localResult,
+          thirdPartyResult: suggestion.response?.thirdPartyResult || suggestion.thirdPartyResult,
+          // 保留原始数据以备兼容
+          response: suggestion.response,
+          request: suggestion.request,
+          error: suggestion.error
+        };
+
+        return {
+          playerId: item.playerId,
+          suggestion: normalizedSuggestion, // 使用标准化的建议格式
+          phase: item.phase,
+          notes: ""
+        };
+      })),
+      actionHistory: JSON.stringify(gameStore.replayData?.actions || gameStore.handActionHistory),
       settings: JSON.stringify(settingStore.getAllSettings)
     }
 

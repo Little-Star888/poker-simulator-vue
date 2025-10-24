@@ -254,10 +254,12 @@ export const useGameStore = defineStore("game", {
       if (!round) return;
 
       let actionStr = action;
-      // 根据用户要求，只在 BET 和 RAISE 动作后显示金额
+      // 根据用户要求，在 BET、RAISE 和 POSTS（盲注）动作后显示金额
       if (
         amount &&
-        (action.toUpperCase() === "BET" || action.toUpperCase() === "RAISE")
+        (action.toUpperCase() === "BET" ||
+          action.toUpperCase() === "RAISE" ||
+          action.toUpperCase() === "POSTS")
       ) {
         actionStr += ` ${amount}`;
       }
@@ -335,10 +337,26 @@ export const useGameStore = defineStore("game", {
         // 开始翻前轮
         this.game!.startNewRound("preflop");
 
+        // 初始化replayData以确保回放数据正确记录
+        this.replayData = {
+          settings: settingStore.getAllSettings,
+          actions: [],
+          gameState: null,
+        };
+
         // 为回放记录包含初始筹码和手牌的"创世"状态
         this.handActionHistory.push({
           type: "initialState",
           players: JSON.parse(JSON.stringify(this.game!.players)), // 深拷贝
+          action: "initialState",
+          round: "preflop",
+          timestamp: Date.now(),
+        });
+
+        // 同时添加到replayData.actions
+        this.replayData.actions.push({
+          type: "initialState",
+          players: JSON.parse(JSON.stringify(this.game!.players)),
           action: "initialState",
           round: "preflop",
           timestamp: Date.now(),
@@ -356,6 +374,14 @@ export const useGameStore = defineStore("game", {
           this.log(
             `[SYSTEM] ${sbPlayer.id} posts Small Blind ${settingStore.sb}`,
           );
+          // 为回放添加盲注动作记录（使用BET动作，与原版保持一致）
+          this.replayData?.actions.push({
+            playerId: sbPlayer.id,
+            action: "BET",
+            amount: settingStore.sb,
+            round: "preflop",
+            timestamp: Date.now(),
+          });
         }
 
         if (bbPlayer && this.actionRecords[bbPlayer.id]) {
@@ -365,6 +391,14 @@ export const useGameStore = defineStore("game", {
           this.log(
             `[SYSTEM] ${bbPlayer.id} posts Big Blind ${settingStore.bb}`,
           );
+          // 为回放添加盲注动作记录（使用BET动作，与原版保持一致）
+          this.replayData?.actions.push({
+            playerId: bbPlayer.id,
+            action: "BET",
+            amount: settingStore.bb,
+            round: "preflop",
+            timestamp: Date.now(),
+          });
         }
 
         this.isGameRunning = true;
@@ -506,6 +540,17 @@ export const useGameStore = defineStore("game", {
           decision.amount,
         );
 
+        // 同时添加到replayData.actions以确保快照包含完整的游戏动作
+        if (this.replayData && this.replayData.actions) {
+          this.replayData.actions.push({
+            playerId: currentPlayerId,
+            action: decision.action,
+            amount: decision.amount,
+            round: this.game.currentRound,
+            timestamp: Date.now(),
+          });
+        }
+
         // 移动到下一位玩家
         this.game.moveToNextPlayer();
 
@@ -534,6 +579,17 @@ export const useGameStore = defineStore("game", {
 
         this.game.executeAction(playerId, action, amount);
         this.logActionToHistory(playerId, action, amount);
+
+        // 同时添加到replayData.actions以确保快照包含完整的游戏动作
+        if (this.replayData && this.replayData.actions) {
+          this.replayData.actions.push({
+            playerId,
+            action,
+            amount,
+            round: this.game.currentRound,
+            timestamp: Date.now(),
+          });
+        }
 
         this.game.moveToNextPlayer();
         this.isWaitingForManualInput = false;
@@ -570,6 +626,16 @@ export const useGameStore = defineStore("game", {
         this.game.dealFlop();
       } else if (nextRound === "turn" || nextRound === "river") {
         this.game.dealTurnOrRiver();
+      }
+
+      // 记录发公共牌动作到replayData
+      if (this.replayData && this.replayData.actions) {
+        this.replayData.actions.push({
+          type: "dealCommunity",
+          cards: [...this.game.communityCards],
+          round: nextRound,
+          timestamp: Date.now(),
+        });
       }
 
       // 开始新的下注轮
@@ -762,7 +828,17 @@ export const useGameStore = defineStore("game", {
     nextReplayStep(isManual = false) {
       if (!this.isInReplayMode || !this.game) return;
 
+      console.log(`[REPLAY DEBUG] nextReplayStep called:`, {
+        currentStep: this.currentReplayStep,
+        totalActions: this.replayData.actions.length,
+        isManual,
+        isInReplayMode: this.isInReplayMode,
+      });
+
       if (this.currentReplayStep >= this.replayData.actions.length) {
+        console.log(
+          `[REPLAY DEBUG] 回放结束: currentStep=${this.currentReplayStep}, totalActions=${this.replayData.actions.length}`,
+        );
         if (this.replayInterval) {
           clearInterval(this.replayInterval);
           this.replayInterval = null;
@@ -773,6 +849,22 @@ export const useGameStore = defineStore("game", {
 
       const event = this.replayData.actions[this.currentReplayStep];
 
+      // 调试日志：打印回放事件信息
+      console.log(`[REPLAY DEBUG] 处理事件:`, {
+        step: this.currentReplayStep,
+        event: event,
+        totalActions: this.replayData.actions.length,
+        settings: this.replayData.settings,
+        allActions: this.replayData.actions.map((action, idx) => ({
+          idx,
+          playerId: action.playerId,
+          action: action.action,
+          amount: action.amount,
+          round: action.round,
+          type: action.type,
+        })),
+      });
+
       if (event.type === "initialState") {
         // 初始状态事件已在resetReplay中处理
         this.currentReplayStep++;
@@ -780,20 +872,40 @@ export const useGameStore = defineStore("game", {
       }
 
       // 检查是否为盲注动作，如果是则只更新UI不执行动作（与原版逻辑一致）
+      const sbIndex = this.game!.sbIndex;
+      const bbIndex = this.game!.bbIndex;
+      const sbPlayerId = this.game!.players[sbIndex!].id;
+      const bbPlayerId = this.game!.players[bbIndex!].id;
+
+      console.log(`[REPLAY DEBUG] 盲注检查:`, {
+        sbIndex,
+        bbIndex,
+        sbPlayerId,
+        bbPlayerId,
+        currentEventPlayerId: event.playerId,
+        currentEventAction: event.action,
+        currentEventRound: event.round,
+        expectedSbAmount: this.replayData.settings?.sb,
+        expectedBbAmount: this.replayData.settings?.bb,
+        actualAmount: event.amount,
+      });
+
       const isSbPost =
         event.round === "preflop" &&
         event.action === "BET" &&
-        event.playerId === this.game!.players[this.game!.sbIndex!].id &&
+        event.playerId === sbPlayerId &&
         event.amount === this.replayData.settings?.sb;
       const isBbPost =
         event.round === "preflop" &&
         event.action === "BET" &&
-        event.playerId === this.game!.players[this.game!.bbIndex!].id &&
+        event.playerId === bbPlayerId &&
         event.amount === this.replayData.settings?.bb;
+
+      console.log(`[REPLAY DEBUG] 盲注判断结果:`, { isSbPost, isBbPost });
 
       if (isSbPost || isBbPost) {
         // 只更新UI显示，不执行游戏引擎动作（因为引擎已处理盲注）
-        this.logActionToHistory(event.playerId!, event.action, event.amount);
+        this.logActionToHistory(event.playerId!, "BET", event.amount);
         this.currentReplayStep++;
         return;
       }

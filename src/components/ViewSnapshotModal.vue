@@ -246,14 +246,17 @@ const groupSuggestionsByPhase = (suggestionsList: any[]) => {
   // 遍历建议数组，按阶段组织
   suggestionsList.forEach((item) => {
     if (item.suggestion) {
-      // 尝试从多个位置获取阶段信息
+      // 获取阶段信息，优先使用存储的phase信息（与原版JS项目保持一致）
       let phase = 'unknown'
       if (item.phase) {
-        phase = item.phase
-      } else if (item.suggestion?.response?.gameState?.currentRound) {
-        phase = item.suggestion.response.gameState.currentRound
-      } else if (item.suggestion?.response?.phase) {
-        phase = item.suggestion.response.phase
+        phase = item.phase // 优先使用存储的phase信息
+      } else {
+        const phaseStr = item.suggestion?.localResult?.strategyPhase?.toLowerCase() ||
+                       item.suggestion?.phase?.toLowerCase() ||
+                       item.suggestion?.response?.gameState?.currentRound?.toLowerCase() ||
+                       item.suggestion?.response?.phase?.toLowerCase() ||
+                       'unknown'
+        phase = phaseStr.replace('_', '')
       }
 
       if (!phaseSuggestions.has(phase)) {
