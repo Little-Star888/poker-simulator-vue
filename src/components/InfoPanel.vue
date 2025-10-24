@@ -16,7 +16,7 @@
           </thead>
           <tbody>
             <tr v-for="playerId in sortedPlayerIds" :key="playerId">
-              <td><strong>{{ playerId }}</strong></td>
+              <td><strong>{{ playerId }}<span v-if="getPlayerRole(playerId)"> ({{ getPlayerRole(playerId) }})</span></strong></td>
               <td v-for="i in 4" :key="`${playerId}-preflop-${i}`">{{ getAction(playerId, 'preflop', i - 1) }}</td>
               <td v-for="i in 4" :key="`${playerId}-flop-${i}`">{{ getAction(playerId, 'flop', i - 1) }}</td>
               <td v-for="i in 4" :key="`${playerId}-turn-${i}`">{{ getAction(playerId, 'turn', i - 1) }}</td>
@@ -126,6 +126,17 @@ const sortedPlayerIds = computed(() => {
     return indexA - indexB
   })
 })
+
+// 获取玩家角色
+const getPlayerRole = (playerId: string) => {
+  const gameState = gameStore.currentGameState
+  if (!gameState || !gameState.players) {
+    return ''
+  }
+
+  const player = gameState.players.find(p => p.id === playerId)
+  return player?.role || ''
+}
 
 const currentSuggestions = computed(() => {
   console.log('[InfoPanel] currentSuggestionsCache:', gameStore.currentSuggestionsCache)
@@ -306,7 +317,6 @@ watch(consoleText, async () => {
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  min-height: 0;
   margin-bottom: 20px;
 }
 
@@ -392,7 +402,6 @@ watch(consoleText, async () => {
 
 #action-sheet-container {
   overflow-x: auto;
-  flex: 1;
 }
 
 #action-sheet {
