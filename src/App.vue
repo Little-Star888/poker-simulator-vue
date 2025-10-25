@@ -138,13 +138,23 @@ const handleScreenshotCapture = async (cropOptions: any) => {
     // 获取游戏状态和 GTO 建议
     const gameState = gameStore.game?.getGameState()
 
-    // 将当前建议缓存转换为数组格式
+    // 与原版JS保持一致：将GTO建议转换为包含phase字段的对象结构
+    const allGtoSuggestions = gameStore.currentSuggestionsCache.map((item) => {
+      return {
+        playerId: item.playerId,
+        suggestion: item.suggestion,
+        request: item.request,
+        phase: item.phase, // 保留阶段信息，与原版JS保持一致
+        notes: "",
+      };
+    });
+
     gameStore.log('✅ 所有当前GTO建议已整理。请在弹窗中确认保存。')
 
     // 设置快照数据
     snapshotPreviewImage.value = imageData
     snapshotGameState.value = gameState
-    snapshotGtoSuggestions.value = gameStore.currentSuggestionsCache
+    snapshotGtoSuggestions.value = allGtoSuggestions // 使用转换后的数据结构
 
     // 显示快照确认模态框
     gameStore.showSnapshotModal = true

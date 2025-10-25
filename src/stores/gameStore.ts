@@ -275,14 +275,19 @@ export const useGameStore = defineStore("game", {
         this.actionRecords[playerId][round].push(actionStr);
       }
 
-      // 同时添加到有序历史列表
-      this.handActionHistory.push({
+      // 同时添加到有序历史列表（与原版JS保持一致的数据结构）
+      const actionData: any = {
         playerId,
         action: actionStr,
-        amount,
         round,
-        timestamp: Date.now(),
-      });
+      };
+
+      // 只有当amount存在且大于0时才添加（与原版JS一致）
+      if (amount && amount > 0) {
+        actionData.amount = amount;
+      }
+
+      this.handActionHistory.push(actionData);
     },
 
     /**
@@ -351,13 +356,10 @@ export const useGameStore = defineStore("game", {
           gameState: null,
         };
 
-        // 为回放记录包含初始筹码和手牌的"创世"状态
+        // 为回放记录包含初始筹码和手牌的"创世"状态（与原版JS保持一致）
         this.handActionHistory.push({
           type: "initialState",
           players: JSON.parse(JSON.stringify(this.game!.players)), // 深拷贝
-          action: "initialState",
-          round: "preflop",
-          timestamp: Date.now(),
         });
 
         // 同时添加到replayData.actions
@@ -549,12 +551,24 @@ export const useGameStore = defineStore("game", {
 
         // 同时添加到replayData.actions以确保快照包含完整的游戏动作
         if (this.replayData && this.replayData.actions) {
-          this.replayData.actions.push({
+          const replayAction: any = {
             playerId: currentPlayerId,
             action: decision.action,
             round: this.game.currentRound!,
             timestamp: Date.now(),
-          });
+          };
+
+          // 对于BET、RAISE、CALL动作，需要记录amount以确保回放正确
+          if (
+            decision.amount &&
+            (decision.action === "BET" ||
+              decision.action === "RAISE" ||
+              decision.action === "CALL")
+          ) {
+            replayAction.amount = decision.amount;
+          }
+
+          this.replayData.actions.push(replayAction);
         }
 
         // 移动到下一位玩家
@@ -681,7 +695,7 @@ export const useGameStore = defineStore("game", {
      * 只有一个赢家时结束牌局
      */
     async endHandWithWinner() {
-      const winner = this.game?.players.find(p => !p.isFolded);
+      const winner = this.game?.players.find((p) => !p.isFolded);
       if (winner) {
         this.log(`🏆 ${winner.id} 是唯一的赢家，赢得底池。`);
       }
@@ -693,8 +707,20 @@ export const useGameStore = defineStore("game", {
         "[DEBUG] 保存快照数据前的currentSuggestionsCache:",
         this.currentSuggestionsCache,
       );
+
+      // 与原版JS保持一致：将GTO建议转换为包含phase字段的对象结构
+      const allGtoSuggestions = this.currentSuggestionsCache.map((item) => {
+        return {
+          playerId: item.playerId,
+          suggestion: item.suggestion,
+          request: item.request,
+          phase: item.phase, // 保留阶段信息，与原版JS保持一致
+          notes: "",
+        };
+      });
+
       this.snapshotDataForSave = {
-        gtoSuggestions: [...this.currentSuggestionsCache],
+        gtoSuggestions: allGtoSuggestions, // 使用转换后的数据结构
         gameState: this.game ? this.game.getGameState() : null,
         handActionHistory: [...this.handActionHistory],
         replayData: this.replayData ? { ...this.replayData } : null,
@@ -726,8 +752,20 @@ export const useGameStore = defineStore("game", {
         "[DEBUG] 保存快照数据前的currentSuggestionsCache:",
         this.currentSuggestionsCache,
       );
+
+      // 与原版JS保持一致：将GTO建议转换为包含phase字段的对象结构
+      const allGtoSuggestions = this.currentSuggestionsCache.map((item) => {
+        return {
+          playerId: item.playerId,
+          suggestion: item.suggestion,
+          request: item.request,
+          phase: item.phase, // 保留阶段信息，与原版JS保持一致
+          notes: "",
+        };
+      });
+
       this.snapshotDataForSave = {
-        gtoSuggestions: [...this.currentSuggestionsCache],
+        gtoSuggestions: allGtoSuggestions, // 使用转换后的数据结构
         gameState: this.game ? this.game.getGameState() : null,
         handActionHistory: [...this.handActionHistory],
         replayData: this.replayData ? { ...this.replayData } : null,

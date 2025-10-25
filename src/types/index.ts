@@ -153,15 +153,19 @@ export interface ReplayData {
   gameState: GameState | null;
 }
 
+// 与原版JS保持一致的HandAction类型定义
 export interface HandAction {
-  playerId?: string; // 对于系统事件可能没有玩家ID
-  action: string;
+  // 玩家动作字段（标准格式）
+  playerId?: string;
+  action?: string;
   amount?: number;
-  round: GameRound;
-  timestamp: number;
-  type?: "initialState" | "action" | "dealCommunity"; // 新增：区分系统事件和玩家动作
-  players?: Player[]; // 新增：用于初始状态事件
-  cards?: string[]; // 新增：用于发公共牌事件
+  round?: GameRound;
+  timestamp?: number;
+
+  // 系统事件字段
+  type?: "initialState" | "action" | "dealCommunity";
+  players?: Player[];
+  cards?: string[];
 }
 
 export type FlopActionSituation = "FIRST_TO_ACT" | "FACING_BET" | "AFTER_CHECK";

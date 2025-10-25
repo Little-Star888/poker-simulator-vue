@@ -78,7 +78,7 @@ watch(() => gameStore.handActionHistory, (newHistory) => {
         return;
     }
     const lastAction = newHistory[newHistory.length - 1];
-    if (lastAction && lastAction.playerId && lastAction.action !== 'initialState') {
+    if (lastAction && lastAction.playerId && lastAction.action && lastAction.action !== 'initialState') {
         const playerId = lastAction.playerId;
         const actionText = lastAction.action;
 
@@ -127,7 +127,7 @@ const updateLayout = () => {
   const tableRect = table.getBoundingClientRect();
   const centerX = tableRect.width / 2;
   const centerY = tableRect.height / 2;
-  
+
   const isMobile = window.innerWidth <= 768;
   // On mobile, player is 80px wide/high. Radius 40. Bubble needs ~30px.
   // Vertical margin should be at least 40 + 30 = 70px.
