@@ -119,6 +119,35 @@ const actionHistoryInfo = computed(() => {
   return `${count} 条记录`
 })
 
+// 压缩图片数据的函数
+const compressImageData = (dataUrl: string, maxWidth: number = 1920, quality: number = 0.8): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')!
+
+      // 计算压缩后的尺寸
+      let { width, height } = img
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width
+        width = maxWidth
+      }
+
+      canvas.width = width
+      canvas.height = height
+
+      // 绘制压缩后的图片
+      ctx.drawImage(img, 0, 0, width, height)
+
+      // 转换为压缩后的base64
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
+      resolve(compressedDataUrl)
+    }
+    img.src = dataUrl
+  })
+}
+
 // 方法
 const handleConfirm = async () => {
   if (isSaving.value) return
@@ -133,11 +162,28 @@ const handleConfirm = async () => {
 
     gameStore.log(`💾 正在保存快照到数据库...`)
 
-    // 准备快照数据
+    // 压缩图片数据以避免413错误
+    let compressedImageData = props.previewImage || ''
+    if (compressedImageData) {
+      gameStore.log(`🗜️ 正在压缩图片数据...`)
+      compressedImageData = await compressImageData(compressedImageData, 1920, 0.8)
+
+      // 检查压缩后的大小，如果仍然太大则进一步压缩
+      const imageSizeKB = Math.round(compressedImageData.length * 0.75 / 1024)
+      gameStore.log(`📊 图片压缩后大小: ${imageSizeKB}KB`)
+
+      if (imageSizeKB > 2048) { // 如果超过2MB，进一步压缩
+        compressedImageData = await compressImageData(compressedImageData, 1280, 0.6)
+        const newSizeKB = Math.round(compressedImageData.length * 0.75 / 1024)
+        gameStore.log(`📊 再次压缩后大小: ${newSizeKB}KB`)
+      }
+    }
+
+    // 准备快照数据 - 使用安全的JSON序列化方法，保持原始数据格式
     const snapshotData = {
       name: finalName,
       gameState: JSON.stringify(props.gameState),
-      imageData: props.previewImage || '',
+      imageData: compressedImageData, // 使用压缩后的图片数据
       gtoSuggestions: JSON.stringify(props.gtoSuggestions.map((item: any) => {
         // 将Vue版本的数据结构转换为原版JS期望的格式
         const suggestion = item.suggestion;
