@@ -581,7 +581,23 @@ export class PokerGame {
     const totalPot = this.pot + currentRoundBets;
 
     return {
-      players: this.players.map((p) => ({ ...p })),
+      players: this.players.map((p) => {
+        // 创建纯净的玩家对象，移除任何Vue组件相关的属性
+        return {
+          id: p.id,
+          role: p.role,
+          stack: p.stack,
+          bet: p.bet,
+          holeCards: [...p.holeCards],
+          isFolded: p.isFolded,
+          hasActed: p.hasActed,
+          isAllIn: p.isAllIn,
+          totalInvested: p.totalInvested,
+          isDealer: p.isDealer,
+          isSmallBlind: p.isSmallBlind,
+          isBigBlind: p.isBigBlind,
+        };
+      }),
       communityCards: [...this.communityCards],
       currentRound: this.currentRound,
       currentPlayerId: this.getCurrentPlayerId(),

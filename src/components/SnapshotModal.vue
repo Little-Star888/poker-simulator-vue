@@ -179,7 +179,132 @@ const handleConfirm = async () => {
       }
     }
 
-    // 准备快照数据 - 使用安全的JSON序列化方法，保持原始数据格式
+    // 详细调试：检查每个数据源
+    gameStore.log('🔍 开始详细调试数据源...')
+
+    // 检查 gameState
+    gameStore.log('🔍 检查 gameState:')
+    gameStore.log(`   - 类型: ${typeof props.gameState}`)
+    gameStore.log(`   - 是否为数组: ${Array.isArray(props.gameState)}`)
+    gameStore.log(`   - 是否为null: ${props.gameState === null}`)
+    if (props.gameState && typeof props.gameState === 'object') {
+      gameStore.log(`   - 键数量: ${Object.keys(props.gameState).length}`)
+      gameStore.log(`   - 主要键: ${Object.keys(props.gameState).join(', ')}`)
+      if (props.gameState.players) {
+        gameStore.log(`   - 玩家数量: ${props.gameState.players.length}`)
+        if (props.gameState.players.length > 0) {
+          const firstPlayer = props.gameState.players[0]
+          gameStore.log(`   - 第一个玩家键: ${Object.keys(firstPlayer).join(', ')}`)
+        }
+      }
+    }
+
+    // 检查 gtoSuggestions
+    gameStore.log('🔍 检查 gtoSuggestions:')
+    gameStore.log(`   - 类型: ${typeof props.gtoSuggestions}`)
+    gameStore.log(`   - 是否为数组: ${Array.isArray(props.gtoSuggestions)}`)
+    gameStore.log(`   - 长度: ${props.gtoSuggestions?.length || 0}`)
+
+    // 检查 actionHistory
+    const actionHistory = gameStore.replayData?.actions || gameStore.handActionHistory
+    gameStore.log('🔍 检查 actionHistory:')
+    gameStore.log(`   - 类型: ${typeof actionHistory}`)
+    gameStore.log(`   - 是否为数组: ${Array.isArray(actionHistory)}`)
+    gameStore.log(`   - 长度: ${actionHistory?.length || 0}`)
+
+    // 检查 settings - 手动提取配置，避免Pinia Store的循环引用
+    const settings = {
+      mode: settingStore.mode,
+      sb: settingStore.sb,
+      bb: settingStore.bb,
+      autoDelay: settingStore.autoDelay,
+      playerCount: settingStore.playerCount,
+      minStack: settingStore.minStack,
+      maxStack: settingStore.maxStack,
+      potType: settingStore.potType,
+      p1Role: settingStore.p1Role,
+      suggestOnPreflop: settingStore.suggestOnPreflop,
+      suggestOnFlop: settingStore.suggestOnFlop,
+      suggestOnTurn: settingStore.suggestOnTurn,
+      suggestOnRiver: settingStore.suggestOnRiver,
+      usePresetHands: settingStore.usePresetHands,
+      usePresetCommunity: settingStore.usePresetCommunity,
+      presetCards: settingStore.presetCards
+    }
+    gameStore.log('🔍 检查 settings:')
+    gameStore.log(`   - 类型: ${typeof settings}`)
+    gameStore.log(`   - 是否为null: ${settings === null}`)
+    if (settings && typeof settings === 'object') {
+      gameStore.log(`   - 键数量: ${Object.keys(settings).length}`)
+      gameStore.log(`   - 主要键: ${Object.keys(settings).join(', ')}`)
+    }
+
+    gameStore.log('🔍 逐个测试序列化...')
+
+    // 测试各个数据源的序列化
+    let gameStateTest, gtoSuggestionsTest, actionHistoryTest, settingsTest
+
+    try {
+      gameStateTest = JSON.stringify(props.gameState)
+      gameStore.log(`✅ gameState 序列化成功，大小: ${Math.round(gameStateTest.length * 0.75 / 1024)}KB`)
+    } catch (error: any) {
+      gameStore.log(`❌ gameState 序列化失败: ${error.message}`)
+      gameStore.log(`   - 错误详情: ${error.stack}`)
+      throw new Error(`gameState 序列化失败: ${error.message}`)
+    }
+
+    try {
+      const processedGtoSuggestions = props.gtoSuggestions.map((item: any) => {
+        // 将Vue版本的数据结构转换为原版JS期望的格式
+        const suggestion = item.suggestion;
+        const normalizedSuggestion = {
+          // 提升response中的字段到顶层，与原版JS期望的格式一致
+          myCards: suggestion.response?.myCards || suggestion.myCards,
+          boardCards: suggestion.response?.boardCards || suggestion.boardCards,
+          localResult: suggestion.response?.localResult || suggestion.localResult,
+          thirdPartyResult: suggestion.response?.thirdPartyResult || suggestion.thirdPartyResult,
+          // 保留原始数据以备兼容
+          response: suggestion.response,
+          request: suggestion.request,
+          error: suggestion.error
+        };
+
+        return {
+          playerId: item.playerId,
+          suggestion: normalizedSuggestion, // 使用标准化的建议格式
+          phase: item.phase,
+          notes: ""
+        };
+      })
+      gtoSuggestionsTest = JSON.stringify(processedGtoSuggestions)
+      gameStore.log(`✅ gtoSuggestions 序列化成功，大小: ${Math.round(gtoSuggestionsTest.length * 0.75 / 1024)}KB`)
+    } catch (error: any) {
+      gameStore.log(`❌ gtoSuggestions 序列化失败: ${error.message}`)
+      gameStore.log(`   - 错误详情: ${error.stack}`)
+      throw new Error(`gtoSuggestions 序列化失败: ${error.message}`)
+    }
+
+    try {
+      actionHistoryTest = JSON.stringify(actionHistory)
+      gameStore.log(`✅ actionHistory 序列化成功，大小: ${Math.round(actionHistoryTest.length * 0.75 / 1024)}KB`)
+    } catch (error: any) {
+      gameStore.log(`❌ actionHistory 序列化失败: ${error.message}`)
+      gameStore.log(`   - 错误详情: ${error.stack}`)
+      throw new Error(`actionHistory 序列化失败: ${error.message}`)
+    }
+
+    try {
+      settingsTest = JSON.stringify(settings)
+      gameStore.log(`✅ settings 序列化成功，大小: ${Math.round(settingsTest.length * 0.75 / 1024)}KB`)
+    } catch (error: any) {
+      gameStore.log(`❌ settings 序列化失败: ${error.message}`)
+      gameStore.log(`   - 错误详情: ${error.stack}`)
+      throw new Error(`settings 序列化失败: ${error.message}`)
+    }
+
+    gameStore.log('✅ 所有数据源序列化测试通过，准备构建快照对象...')
+
+    // 构建快照数据 - 将所有字段序列化为字符串以匹配后端期望
     const snapshotData = {
       name: finalName,
       gameState: JSON.stringify(props.gameState),
@@ -206,9 +331,22 @@ const handleConfirm = async () => {
           notes: ""
         };
       })),
-      actionHistory: JSON.stringify(gameStore.replayData?.actions || gameStore.handActionHistory),
-      settings: JSON.stringify(settingStore.getAllSettings)
+      actionHistory: JSON.stringify(actionHistory),
+      settings: JSON.stringify(settings)
     }
+
+    gameStore.log('🔍 测试完整快照对象序列化...')
+
+    try {
+      const fullTest = JSON.stringify(snapshotData)
+      gameStore.log(`✅ 完整快照对象序列化成功，总大小: ${Math.round(fullTest.length * 0.75 / 1024)}KB`)
+    } catch (error: any) {
+      gameStore.log(`❌ 完整快照对象序列化失败: ${error.message}`)
+      gameStore.log(`   - 错误详情: ${error.stack}`)
+      throw new Error(`完整快照对象序列化失败: ${error.message}`)
+    }
+
+    gameStore.log('✅ 所有序列化测试通过，开始保存快照...')
 
     const savedSnapshot = await createSnapshot(snapshotData)
 
